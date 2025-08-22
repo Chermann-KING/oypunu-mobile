@@ -1,0 +1,45 @@
+export const Colors = {
+  primary: {
+    50: "#f3f4f6",
+    100: "#e5e7eb", 
+    200: "#d1d5db",
+    300: "#9ca3af",
+    400: "#6b7280",
+    500: "#374151",
+    600: "#1f2937",
+    700: "#111827",
+    800: "#030712",
+    900: "#000000",
+  },
+  gradient: {
+    primary: ["#9333ea", "#3b82f6"],
+    secondary: ["#7c3aed", "#2563eb"],
+    accent: ["#ec4899", "#f59e0b"],
+  },
+  semantic: {
+    success: "#10b981",
+    warning: "#f59e0b", 
+    error: "#ef4444",
+    info: "#3b82f6",
+  },
+  text: {
+    primary: "#ffffff",
+    secondary: "#d1d5db", 
+    tertiary: "#9ca3af",
+    disabled: "#6b7280",
+    onPrimary: "#ffffff",
+  },
+  surface: {
+    background: "#030712",
+    card: "#111827",
+    elevated: "#1f2937",
+    overlay: "rgba(0, 0, 0, 0.8)",
+  },
+  interactive: {
+    default: "#d1d5db",
+    hover: "#9ca3af",
+    pressed: "#6b7280",
+    disabled: "#374151", 
+    focus: "#8b5cf6",
+  },
+} as const;
