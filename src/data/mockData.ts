@@ -112,8 +112,15 @@ export const mockCommunityActivity: CommunityActivity[] = [
 export const mockUser: User = {
   id: "current_user",
   name: "Utilisateur O'Ypunu",
+  username: "oypunu_user",
+  email: "user@oypunu.com",
   avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+  role: "user",
+  status: "active",
+  emailVerified: true,
   wordsAdded: 23,
   favorites: 45,
   contributions: 67,
+  createdAt: "2024-01-01T00:00:00.000Z",
+  updatedAt: "2024-12-01T00:00:00.000Z",
 };

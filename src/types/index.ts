@@ -30,8 +30,15 @@ export interface CommunityActivity {
 export interface User {
   id: string;
   name: string;
+  username?: string;
+  email?: string;
   avatar: string;
+  role: 'user' | 'contributor' | 'admin' | 'superadmin';
+  status: 'active' | 'inactive' | 'suspended';
+  emailVerified: boolean;
   wordsAdded: number;
   favorites: number;
   contributions: number;
+  createdAt: string;
+  updatedAt: string;
 }
