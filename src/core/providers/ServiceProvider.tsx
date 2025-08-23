@@ -10,13 +10,15 @@ import {
   IStorageService, 
   ICacheService,
   IAuthService,
-  IDictionaryService
+  IDictionaryService,
+  IFavoritesService
 } from '../interfaces';
 import { 
   ApiService, 
   StorageService, 
   CacheService,
   DictionaryService,
+  FavoritesService,
   createAuthService,
   apiService,
   storageService,
@@ -33,6 +35,7 @@ export interface ServiceContainer {
   cacheService: ICacheService;
   authService: IAuthService;
   dictionaryService: IDictionaryService;
+  favoritesService: IFavoritesService;
 }
 
 /**
@@ -45,6 +48,7 @@ const defaultServices: ServiceContainer = {
   cacheService,
   authService: createAuthService(apiService, storageService, cacheService),
   dictionaryService: new DictionaryService(apiService, cacheService),
+  favoritesService: new FavoritesService(apiService, cacheService, storageService),
 };
 
 /**
@@ -125,6 +129,10 @@ export const useAuthService = (): IAuthService => {
 
 export const useDictionaryService = (): IDictionaryService => {
   return useServices().dictionaryService;
+};
+
+export const useFavoritesService = (): IFavoritesService => {
+  return useServices().favoritesService;
 };
 
 /**

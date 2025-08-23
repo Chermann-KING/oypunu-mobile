@@ -6,6 +6,7 @@ export * from './StorageService';
 export * from './CacheService';
 export * from './AuthService';
 export * from './DictionaryService';
+export * from './FavoritesService';
 export { SocialAuthService, type OAuth2Result, type SocialProvider } from './SocialAuthService';
 
 // Re-export interfaces for convenience
