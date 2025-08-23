@@ -2,3 +2,4 @@
 // Single entry point for all reusable hooks
 
 export * from './useAuth';
+export * from './useDictionary';

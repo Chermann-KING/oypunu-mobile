@@ -9,12 +9,14 @@ import {
   IApiService, 
   IStorageService, 
   ICacheService,
-  IAuthService 
+  IAuthService,
+  IDictionaryService
 } from '../interfaces';
 import { 
   ApiService, 
   StorageService, 
   CacheService,
+  DictionaryService,
   createAuthService,
   apiService,
   storageService,
@@ -30,6 +32,7 @@ export interface ServiceContainer {
   storageService: IStorageService;
   cacheService: ICacheService;
   authService: IAuthService;
+  dictionaryService: IDictionaryService;
 }
 
 /**
@@ -41,6 +44,7 @@ const defaultServices: ServiceContainer = {
   storageService,
   cacheService,
   authService: createAuthService(apiService, storageService, cacheService),
+  dictionaryService: new DictionaryService(apiService, cacheService),
 };
 
 /**
@@ -92,6 +96,13 @@ export const useServices = (): ServiceContainer => {
 };
 
 /**
+ * Alias for useServices for consistency
+ */
+export const useServiceProvider = (): ServiceContainer => {
+  return useServices();
+};
+
+/**
  * Individual service hooks for convenience
  * These follow the Dependency Inversion Principle
  */
@@ -110,6 +121,10 @@ export const useCacheService = (): ICacheService => {
 
 export const useAuthService = (): IAuthService => {
   return useServices().authService;
+};
+
+export const useDictionaryService = (): IDictionaryService => {
+  return useServices().dictionaryService;
 };
 
 /**
