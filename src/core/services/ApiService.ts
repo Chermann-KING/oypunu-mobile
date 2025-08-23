@@ -6,6 +6,7 @@
 
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 import { IApiService, ApiResponse, ApiError, RequestConfig } from '../interfaces/IApiService';
+import { getApiConfig } from '../../config/environment';
 
 /**
  * Configuration for API service
@@ -18,13 +19,11 @@ export interface ApiServiceConfig {
 }
 
 /**
- * Default configuration
+ * Default configuration using environment settings
  */
 const DEFAULT_CONFIG: ApiServiceConfig = {
-  baseURL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1',
-  timeout: 10000, // 10 seconds
+  ...getApiConfig(),
   retries: 3,
-  enableLogging: __DEV__, // Only in development
 };
 
 /**

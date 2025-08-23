@@ -8,12 +8,14 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import { 
   IApiService, 
   IStorageService, 
-  ICacheService 
+  ICacheService,
+  IAuthService 
 } from '../interfaces';
 import { 
   ApiService, 
   StorageService, 
   CacheService,
+  createAuthService,
   apiService,
   storageService,
   cacheService 
@@ -27,6 +29,7 @@ export interface ServiceContainer {
   apiService: IApiService;
   storageService: IStorageService;
   cacheService: ICacheService;
+  authService: IAuthService;
 }
 
 /**
@@ -37,6 +40,7 @@ const defaultServices: ServiceContainer = {
   apiService,
   storageService,
   cacheService,
+  authService: createAuthService(apiService, storageService, cacheService),
 };
 
 /**
@@ -104,6 +108,10 @@ export const useCacheService = (): ICacheService => {
   return useServices().cacheService;
 };
 
+export const useAuthService = (): IAuthService => {
+  return useServices().authService;
+};
+
 /**
  * HOC for injecting services into class components
  */
@@ -120,45 +128,6 @@ export function withServices<P extends WithServicesProps>(
   };
 }
 
-/**
- * Service initialization function
- * Call this on app startup to initialize services
- */
-export const initializeServices = async (): Promise<void> => {
-  try {
-    console.log('[Services] Initializing core services...');
-    
-    // Initialize cache service cleanup
-    // cacheService is already initialized with auto-cleanup
-    
-    // Clean up expired storage items
-    await storageService.removeExpiredItems();
-    
-    // Log service initialization
-    if (__DEV__) {
-      const cacheStats = cacheService.getStats();
-      const storageInfo = await storageService.getStorageInfo();
-      const apiConfig = apiService.getConfig();
-      
-      console.log('[Services] Initialization complete:', {
-        cache: cacheStats,
-        storage: {
-          keys: storageInfo.totalKeys,
-          estimatedSize: `${(storageInfo.estimatedSize / 1024).toFixed(2)}KB`,
-        },
-        api: {
-          baseURL: apiConfig.baseURL,
-          timeout: apiConfig.timeout,
-        },
-      });
-    }
-    
-    console.log('[Services] All core services initialized successfully');
-  } catch (error) {
-    console.error('[Services] Failed to initialize services:', error);
-    // Don't throw - let app continue with potentially degraded functionality
-  }
-};
 
 /**
  * Service cleanup function
