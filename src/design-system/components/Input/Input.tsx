@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, Text, StyleSheet } from 'react-native';
+import { View, TextInput, Text, StyleSheet, KeyboardTypeOptions, TextInputProps } from 'react-native';
 import { Colors, Spacing, Layout, Typography } from '../../tokens';
 
 interface InputProps {
@@ -13,6 +13,10 @@ interface InputProps {
   secureTextEntry?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  keyboardType?: KeyboardTypeOptions;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  autoComplete?: TextInputProps['autoComplete'];
+  autoCorrect?: boolean;
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -26,6 +30,10 @@ export const Input: React.FC<InputProps> = ({
   secureTextEntry = false,
   leftIcon,
   rightIcon,
+  keyboardType,
+  autoCapitalize,
+  autoComplete,
+  autoCorrect,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -50,6 +58,10 @@ export const Input: React.FC<InputProps> = ({
           editable={!disabled}
           multiline={multiline}
           secureTextEntry={secureTextEntry}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          autoComplete={autoComplete}
+          autoCorrect={autoCorrect}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
         />
