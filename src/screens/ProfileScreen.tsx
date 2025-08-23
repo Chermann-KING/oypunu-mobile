@@ -4,13 +4,37 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Settings, Heart, BookOpen, Award, Edit3, LogIn } from 'lucide-react-native';
 import { Colors, Spacing, Typography } from '../design-system';
-import { Card, Button } from '../design-system/components';
+import { Card, Button, Avatar } from '../design-system/components';
 import { useAuth } from '../core/hooks/useAuth';
 import { mockUser } from '../data/mockData';
 
 export const ProfileScreen: React.FC = () => {
   const router = useRouter();
   const { user, isAuthenticated, logout, isLoading } = useAuth();
+
+  // Function to translate user roles to French
+  const getRoleDisplayName = (role: string): string => {
+    const roleTranslations: Record<string, string> = {
+      user: 'Utilisateur',
+      contributor: 'Contributeur',
+      admin: 'Administrateur',
+      superadmin: 'Super Administrateur',
+    };
+    
+    return roleTranslations[role] || role;
+  };
+
+  // Function to get role color
+  const getRoleColor = (role: string): string => {
+    const roleColors: Record<string, string> = {
+      user: Colors.semantic.info,
+      contributor: Colors.semantic.success,
+      admin: Colors.semantic.warning,
+      superadmin: Colors.semantic.error,
+    };
+    
+    return roleColors[role] || Colors.text.secondary;
+  };
   const StatItem = ({ icon, label, value }: {
     icon: React.ReactNode;
     label: string;
@@ -76,11 +100,26 @@ export const ProfileScreen: React.FC = () => {
 
         <Card variant="elevated" padding={6}>
           <View style={styles.profileHeader}>
-            <Image source={{ uri: currentUser.avatar || mockUser.avatar }} style={styles.avatar} />
+            <View style={styles.avatarContainer}>
+              <Avatar
+                imageUrl={currentUser.avatar}
+                name={currentUser.username || currentUser.name || mockUser.name}
+                role={user?.role}
+                size={80}
+              />
+            </View>
             <View style={styles.profileInfo}>
               <Text style={styles.userName}>{currentUser.username || currentUser.name || mockUser.name}</Text>
-              <Text style={styles.userRole}>
-                {isAuthenticated ? `Utilisateur connecté` : 'Contributeur actif'}
+              <Text 
+                style={[
+                  styles.userRole, 
+                  { color: isAuthenticated && user?.role ? getRoleColor(user.role) : Colors.text.secondary }
+                ]}
+              >
+                {isAuthenticated && user?.role 
+                  ? getRoleDisplayName(user.role) 
+                  : 'Contributeur actif'
+                }
               </Text>
             </View>
             <TouchableOpacity style={styles.editButton}>
@@ -188,10 +227,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing[6],
   },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  avatarContainer: {
     marginRight: Spacing[4],
   },
   profileInfo: {
