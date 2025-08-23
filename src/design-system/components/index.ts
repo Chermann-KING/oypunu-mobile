@@ -3,3 +3,4 @@ export { Input } from './Input';
 export { Card } from './Card';
 export { SearchBar } from './SearchBar';
 export { SocialLoginButton } from './SocialLoginButton';
+export { Avatar } from './Avatar';
