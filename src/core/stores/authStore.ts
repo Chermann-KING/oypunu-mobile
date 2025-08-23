@@ -156,12 +156,12 @@ export const useAuthStore = create<AuthState>()(
  * Utility hooks for specific auth checks
  */
 
-export const useAuth = () => {
+export const useAuthStoreState = () => {
   const { user, isAuthenticated, isLoading, error } = useAuthStore();
   return { user, isAuthenticated, isLoading, error };
 };
 
-export const useAuthActions = () => {
+export const useAuthStoreActions = () => {
   const { 
     login, 
     logout, 
