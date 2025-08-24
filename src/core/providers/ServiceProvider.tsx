@@ -4,26 +4,32 @@
  * Provides all services through React Context
  */
 
-import React, { createContext, useContext, ReactNode } from 'react';
-import { 
-  IApiService, 
-  IStorageService, 
+import React, { createContext, useContext, ReactNode } from "react";
+import {
+  IApiService,
+  IStorageService,
   ICacheService,
   IAuthService,
   IDictionaryService,
-  IFavoritesService
-} from '../interfaces';
-import { 
-  ApiService, 
-  StorageService, 
+  IFavoritesService,
+  ILanguageService,
+  ICategoryService,
+  IUserStatsService,
+} from "../interfaces";
+import {
+  ApiService,
+  StorageService,
   CacheService,
   DictionaryService,
   FavoritesService,
+  CategoryService,
   createAuthService,
   apiService,
   storageService,
-  cacheService 
-} from '../services';
+  cacheService,
+} from "../services";
+import { UserStatsService } from "../services/UserStatsService";
+import { LanguageService } from "../services/LanguageService";
 
 /**
  * Service container interface
@@ -36,6 +42,9 @@ export interface ServiceContainer {
   authService: IAuthService;
   dictionaryService: IDictionaryService;
   favoritesService: IFavoritesService;
+  languageService: ILanguageService;
+  categoryService: ICategoryService;
+  userStatsService: IUserStatsService;
 }
 
 /**
@@ -48,7 +57,14 @@ const defaultServices: ServiceContainer = {
   cacheService,
   authService: createAuthService(apiService, storageService, cacheService),
   dictionaryService: new DictionaryService(apiService, cacheService),
-  favoritesService: new FavoritesService(apiService, cacheService, storageService),
+  favoritesService: new FavoritesService(
+    apiService,
+    cacheService,
+    storageService
+  ),
+  languageService: new LanguageService(apiService, cacheService),
+  categoryService: new CategoryService(apiService, cacheService),
+  userStatsService: new UserStatsService(apiService, cacheService),
 };
 
 /**
@@ -68,9 +84,9 @@ export interface ServiceProviderProps {
  * Service Provider Component
  * Provides all core services to the application
  */
-export const ServiceProvider: React.FC<ServiceProviderProps> = ({ 
-  children, 
-  services = {} 
+export const ServiceProvider: React.FC<ServiceProviderProps> = ({
+  children,
+  services = {},
 }) => {
   // Merge provided services with defaults
   const serviceContainer: ServiceContainer = {
@@ -91,11 +107,11 @@ export const ServiceProvider: React.FC<ServiceProviderProps> = ({
  */
 export const useServices = (): ServiceContainer => {
   const services = useContext(ServiceContext);
-  
+
   if (!services) {
-    throw new Error('useServices must be used within a ServiceProvider');
+    throw new Error("useServices must be used within a ServiceProvider");
   }
-  
+
   return services;
 };
 
@@ -135,6 +151,18 @@ export const useFavoritesService = (): IFavoritesService => {
   return useServices().favoritesService;
 };
 
+export const useLanguageService = (): ILanguageService => {
+  return useServices().languageService;
+};
+
+export const useCategoryService = (): ICategoryService => {
+  return useServices().categoryService;
+};
+
+export const useUserStatsService = (): IUserStatsService => {
+  return useServices().userStatsService;
+};
+
 /**
  * HOC for injecting services into class components
  */
@@ -144,13 +172,12 @@ export interface WithServicesProps {
 
 export function withServices<P extends WithServicesProps>(
   Component: React.ComponentType<P>
-): React.ComponentType<Omit<P, 'services'>> {
-  return function WrappedComponent(props: Omit<P, 'services'>) {
+): React.ComponentType<Omit<P, "services">> {
+  return function WrappedComponent(props: Omit<P, "services">) {
     const services = useServices();
     return <Component {...(props as P)} services={services} />;
   };
 }
-
 
 /**
  * Service cleanup function
@@ -158,13 +185,13 @@ export function withServices<P extends WithServicesProps>(
  */
 export const cleanupServices = (): void => {
   try {
-    console.log('[Services] Cleaning up services...');
-    
+    console.log("[Services] Cleaning up services...");
+
     // Cleanup cache service
     cacheService.destroy();
-    
-    console.log('[Services] Cleanup complete');
+
+    console.log("[Services] Cleanup complete");
   } catch (error) {
-    console.error('[Services] Error during cleanup:', error);
+    console.error("[Services] Error during cleanup:", error);
   }
 };
