@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, StyleSheet } from 'react-native';
+import { View, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
 import { Search } from 'lucide-react-native';
 import { Colors, Spacing, Layout, Typography } from '../../tokens';
 
@@ -8,6 +8,7 @@ interface SearchBarProps {
   onSearch: (query: string) => void;
   onFocus?: () => void;
   onBlur?: () => void;
+  loading?: boolean;
 }
 
 export const SearchBar: React.FC<SearchBarProps> = ({
@@ -15,6 +16,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   onSearch,
   onFocus,
   onBlur,
+  loading = false,
 }) => {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -41,7 +43,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
   return (
     <View style={containerStyle}>
-      <Search size={20} color={Colors.text.tertiary} style={styles.icon} />
+      {loading ? (
+        <ActivityIndicator size="small" color={Colors.text.tertiary} style={styles.icon} />
+      ) : (
+        <Search size={20} color={Colors.text.tertiary} style={styles.icon} />
+      )}
       <TextInput
         style={styles.input}
         value={query}

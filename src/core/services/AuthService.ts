@@ -4,9 +4,9 @@
  * Implements IAuthService interface (DIP)
  */
 
-import { 
-  IAuthService, 
-  IApiService, 
+import {
+  IAuthService,
+  IApiService,
   IStorageService,
   ICacheService,
   LoginCredentials,
@@ -16,9 +16,9 @@ import {
   ResetPasswordData,
   SocialAuthResult,
   STORAGE_KEYS,
-  CACHE_KEYS
-} from '../interfaces';
-import { User } from '../../types';
+  CACHE_KEYS,
+} from "../interfaces";
+import { User } from "../../types";
 
 /**
  * Concrete implementation of IAuthService
@@ -37,38 +37,45 @@ export class AuthService implements IAuthService {
    */
   async login(credentials: LoginCredentials): Promise<AuthResult> {
     try {
-      const response = await this.apiService.post<AuthResult>('/auth/login', {
+      const response = await this.apiService.post<AuthResult>("/auth/login", {
         email: credentials.email,
         password: credentials.password,
       });
 
       const authResult = response.data;
-      
+
       // Transform API response to match our interface
       const normalizedTokens = this.normalizeTokens(authResult.tokens);
-      
+
       // Store tokens securely
       await this.storeTokens(normalizedTokens);
-      
+
       // Store user data
-      await this.storageService.setItem(STORAGE_KEYS.USER_DATA, authResult.user);
-      
+      await this.storageService.setItem(
+        STORAGE_KEYS.USER_DATA,
+        authResult.user
+      );
+
       // Set auth token in API service for future requests
       this.apiService.setAuthToken(normalizedTokens.accessToken);
-      
+
       // Cache user data for quick access
-      this.cacheService.set(CACHE_KEYS.USER_FAVORITES, authResult.user, 3600000); // 1 hour
-      
+      this.cacheService.set(
+        CACHE_KEYS.USER_FAVORITES,
+        authResult.user,
+        3600000
+      ); // 1 hour
+
       // Return normalized result
       const normalizedAuthResult = {
         ...authResult,
         tokens: normalizedTokens,
       };
-      
-      this.log('LOGIN_SUCCESS', credentials.email);
+
+      this.log("LOGIN_SUCCESS", credentials.email);
       return normalizedAuthResult;
     } catch (error) {
-      this.log('LOGIN_ERROR', credentials.email, error);
+      this.log("LOGIN_ERROR", credentials.email, error);
       throw this.transformAuthError(error);
     }
   }
@@ -78,34 +85,40 @@ export class AuthService implements IAuthService {
    */
   async register(data: RegisterData): Promise<AuthResult> {
     try {
-      const response = await this.apiService.post<AuthResult>('/auth/register', {
-        email: data.email,
-        username: data.username,
-        password: data.password,
-        confirmPassword: data.confirmPassword,
-        acceptTerms: data.acceptTerms,
-      });
+      const response = await this.apiService.post<AuthResult>(
+        "/auth/register",
+        {
+          email: data.email,
+          username: data.username,
+          password: data.password,
+          confirmPassword: data.confirmPassword,
+          acceptTerms: data.acceptTerms,
+        }
+      );
 
       const authResult = response.data;
-      
+
       // Transform API response to match our interface
       const normalizedTokens = this.normalizeTokens(authResult.tokens);
-      
+
       // Store tokens and user data (same as login)
       await this.storeTokens(normalizedTokens);
-      await this.storageService.setItem(STORAGE_KEYS.USER_DATA, authResult.user);
+      await this.storageService.setItem(
+        STORAGE_KEYS.USER_DATA,
+        authResult.user
+      );
       this.apiService.setAuthToken(normalizedTokens.accessToken);
-      
+
       // Return normalized result
       const normalizedAuthResult = {
         ...authResult,
         tokens: normalizedTokens,
       };
-      
-      this.log('REGISTER_SUCCESS', data.email);
+
+      this.log("REGISTER_SUCCESS", data.email);
       return normalizedAuthResult;
     } catch (error) {
-      this.log('REGISTER_ERROR', data.email, error);
+      this.log("REGISTER_ERROR", data.email, error);
       throw this.transformAuthError(error);
     }
   }
@@ -115,23 +128,30 @@ export class AuthService implements IAuthService {
    */
   async logout(): Promise<void> {
     try {
-      // Call backend logout (no body needed, auth header is sufficient)
-      await this.apiService.post('/auth/logout');
+      // Call backend logout with refresh_token as required by API spec
+      const refreshToken = await this.getStoredRefreshToken();
+      if (refreshToken) {
+        await this.apiService.post("/auth/logout", {
+          refresh_token: refreshToken,
+        });
+      } else {
+        await this.apiService.post("/auth/logout", { refresh_token: "" });
+      }
     } catch (error) {
       // Continue with local logout even if backend call fails
-      console.warn('[AuthService] Backend logout failed:', error);
+      console.warn("[AuthService] Backend logout failed:", error);
     }
 
     // Clear all stored data
     await this.clearStoredAuth();
-    
+
     // Clear API auth token
     this.apiService.clearAuthToken();
-    
+
     // Clear cached user data
     this.cacheService.delete(CACHE_KEYS.USER_FAVORITES);
-    
-    this.log('LOGOUT_SUCCESS');
+
+    this.log("LOGOUT_SUCCESS");
   }
 
   /**
@@ -140,32 +160,35 @@ export class AuthService implements IAuthService {
   async refreshToken(): Promise<AuthTokens> {
     try {
       const refreshToken = await this.getStoredRefreshToken();
-      
+
       if (!refreshToken) {
-        throw new Error('No refresh token available');
+        throw new Error("No refresh token available");
       }
 
-      const response = await this.apiService.post<{ tokens: AuthTokens }>('/auth/refresh', {
-        refreshToken,
-      });
+      const response = await this.apiService.post<{ tokens: AuthTokens }>(
+        "/auth/refresh",
+        {
+          refresh_token: refreshToken,
+        }
+      );
 
       const newTokens = response.data.tokens;
-      
+
       // Store new tokens
       await this.storeTokens(newTokens);
-      
+
       // Update API service with new access token
       this.apiService.setAuthToken(newTokens.accessToken);
-      
-      this.log('REFRESH_SUCCESS');
+
+      this.log("REFRESH_SUCCESS");
       return newTokens;
     } catch (error) {
-      this.log('REFRESH_ERROR', '', error);
-      
+      this.log("REFRESH_ERROR", "", error);
+
       // If refresh fails, clear all auth data
       await this.clearStoredAuth();
       this.apiService.clearAuthToken();
-      
+
       throw this.transformAuthError(error);
     }
   }
@@ -175,10 +198,10 @@ export class AuthService implements IAuthService {
    */
   async requestPasswordReset(email: string): Promise<void> {
     try {
-      await this.apiService.post('/auth/forgot-password', { email });
-      this.log('PASSWORD_RESET_REQUEST', email);
+      await this.apiService.post("/auth/forgot-password", { email });
+      this.log("PASSWORD_RESET_REQUEST", email);
     } catch (error) {
-      this.log('PASSWORD_RESET_REQUEST_ERROR', email, error);
+      this.log("PASSWORD_RESET_REQUEST_ERROR", email, error);
       throw this.transformAuthError(error);
     }
   }
@@ -188,14 +211,14 @@ export class AuthService implements IAuthService {
    */
   async resetPassword(data: ResetPasswordData): Promise<void> {
     try {
-      await this.apiService.post('/auth/reset-password', {
+      await this.apiService.post("/auth/reset-password", {
         token: data.token,
         newPassword: data.newPassword,
         confirmPassword: data.confirmPassword,
       });
-      this.log('PASSWORD_RESET_SUCCESS');
+      this.log("PASSWORD_RESET_SUCCESS");
     } catch (error) {
-      this.log('PASSWORD_RESET_ERROR', '', error);
+      this.log("PASSWORD_RESET_ERROR", "", error);
       throw this.transformAuthError(error);
     }
   }
@@ -205,18 +228,22 @@ export class AuthService implements IAuthService {
    */
   async verifyEmail(token: string): Promise<void> {
     try {
-      await this.apiService.post('/auth/verify-email', { token });
-      
+      await this.apiService.get(
+        `/auth/verify-email/${encodeURIComponent(token)}`
+      );
+
       // Update stored user data to reflect verified status
-      const userData = await this.storageService.getItem<User>(STORAGE_KEYS.USER_DATA);
+      const userData = await this.storageService.getItem<User>(
+        STORAGE_KEYS.USER_DATA
+      );
       if (userData) {
         userData.emailVerified = true;
         await this.storageService.setItem(STORAGE_KEYS.USER_DATA, userData);
       }
-      
-      this.log('EMAIL_VERIFY_SUCCESS');
+
+      this.log("EMAIL_VERIFY_SUCCESS");
     } catch (error) {
-      this.log('EMAIL_VERIFY_ERROR', token, error);
+      this.log("EMAIL_VERIFY_ERROR", token, error);
       throw this.transformAuthError(error);
     }
   }
@@ -226,10 +253,10 @@ export class AuthService implements IAuthService {
    */
   async resendEmailVerification(): Promise<void> {
     try {
-      await this.apiService.post('/auth/resend-verification');
-      this.log('RESEND_VERIFICATION_SUCCESS');
+      await this.apiService.post("/auth/resend-verification");
+      this.log("RESEND_VERIFICATION_SUCCESS");
     } catch (error) {
-      this.log('RESEND_VERIFICATION_ERROR', '', error);
+      this.log("RESEND_VERIFICATION_ERROR", "", error);
       throw this.transformAuthError(error);
     }
   }
@@ -237,46 +264,58 @@ export class AuthService implements IAuthService {
   /**
    * Authenticate with social provider
    */
-  async socialAuth(provider: 'google' | 'facebook' | 'twitter'): Promise<AuthResult> {
+  async socialAuth(
+    provider: "google" | "facebook" | "twitter"
+  ): Promise<AuthResult> {
     try {
       // Import SocialAuthService dynamically to avoid circular dependencies
-      const { SocialAuthService } = require('./SocialAuthService');
+      const { SocialAuthService } = require("./SocialAuthService");
       const socialAuthService = new SocialAuthService();
-      
-      this.log('SOCIAL_AUTH_START', provider);
-      
+
+      this.log("SOCIAL_AUTH_START", provider);
+
       // Perform OAuth flow with the social provider
       const socialResult = await socialAuthService.authenticateWith(provider);
-      
+
       // Send social auth data to our backend
-      const response = await this.apiService.post<AuthResult>(`/auth/social/${provider}`, {
-        accessToken: socialResult.accessToken,
-        userInfo: socialResult.userInfo,
-      });
+      const response = await this.apiService.post<AuthResult>(
+        `/auth/social/${provider}`,
+        {
+          accessToken: socialResult.accessToken,
+          userInfo: socialResult.userInfo,
+        }
+      );
 
       const authResult = response.data;
-      
+
       // Transform API response to match our interface
       const normalizedTokens = this.normalizeTokens(authResult.tokens);
-      
+
       // Store tokens and user data (same as login)
       await this.storeTokens(normalizedTokens);
-      await this.storageService.setItem(STORAGE_KEYS.USER_DATA, authResult.user);
+      await this.storageService.setItem(
+        STORAGE_KEYS.USER_DATA,
+        authResult.user
+      );
       this.apiService.setAuthToken(normalizedTokens.accessToken);
-      
+
       // Cache user data for quick access
-      this.cacheService.set(CACHE_KEYS.USER_FAVORITES, authResult.user, 3600000); // 1 hour
-      
+      this.cacheService.set(
+        CACHE_KEYS.USER_FAVORITES,
+        authResult.user,
+        3600000
+      ); // 1 hour
+
       // Return normalized result
       const normalizedAuthResult = {
         ...authResult,
         tokens: normalizedTokens,
       };
-      
-      this.log('SOCIAL_AUTH_SUCCESS', provider);
+
+      this.log("SOCIAL_AUTH_SUCCESS", provider);
       return normalizedAuthResult;
     } catch (error) {
-      this.log('SOCIAL_AUTH_ERROR', provider, error);
+      this.log("SOCIAL_AUTH_ERROR", provider, error);
       throw this.transformAuthError(error);
     }
   }
@@ -290,11 +329,13 @@ export class AuthService implements IAuthService {
     tokens: AuthTokens | null;
   }> {
     try {
-      const user = await this.storageService.getItem<User>(STORAGE_KEYS.USER_DATA);
+      const user = await this.storageService.getItem<User>(
+        STORAGE_KEYS.USER_DATA
+      );
       const tokens = await this.getStoredTokens();
-      
+
       const isAuthenticated = !!(user && tokens && this.isTokenValid(tokens));
-      
+
       // If tokens are expired, try to refresh
       if (user && tokens && !this.isTokenValid(tokens)) {
         try {
@@ -313,14 +354,14 @@ export class AuthService implements IAuthService {
           };
         }
       }
-      
+
       return {
         isAuthenticated,
         user,
         tokens,
       };
     } catch (error) {
-      this.log('AUTH_STATUS_ERROR', '', error);
+      this.log("AUTH_STATUS_ERROR", "", error);
       return {
         isAuthenticated: false,
         user: null,
@@ -335,16 +376,16 @@ export class AuthService implements IAuthService {
   async validateSession(): Promise<boolean> {
     try {
       const authStatus = await this.getAuthStatus();
-      
+
       if (!authStatus.isAuthenticated) {
         return false;
       }
 
       // Validate with backend
-      const response = await this.apiService.get('/auth/validate');
+      const response = await this.apiService.get("/auth/validate");
       return response.status === 200;
     } catch (error) {
-      this.log('SESSION_VALIDATION_ERROR', '', error);
+      this.log("SESSION_VALIDATION_ERROR", "", error);
       return false;
     }
   }
@@ -352,15 +393,18 @@ export class AuthService implements IAuthService {
   /**
    * Change user password
    */
-  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  async changePassword(
+    currentPassword: string,
+    newPassword: string
+  ): Promise<void> {
     try {
-      await this.apiService.post('/auth/change-password', {
+      await this.apiService.post("/auth/change-password", {
         currentPassword,
         newPassword,
       });
-      this.log('PASSWORD_CHANGE_SUCCESS');
+      this.log("PASSWORD_CHANGE_SUCCESS");
     } catch (error) {
-      this.log('PASSWORD_CHANGE_ERROR', '', error);
+      this.log("PASSWORD_CHANGE_ERROR", "", error);
       throw this.transformAuthError(error);
     }
   }
@@ -370,19 +414,23 @@ export class AuthService implements IAuthService {
    */
   async updateProfile(userData: Partial<User>): Promise<User> {
     try {
-      const response = await this.apiService.put<User>('/auth/profile', userData);
+      // Align with backend: PATCH /users/profile
+      const response = await this.apiService.patch<User>(
+        "/users/profile",
+        userData
+      );
       const updatedUser = response.data;
-      
+
       // Update stored user data
       await this.storageService.setItem(STORAGE_KEYS.USER_DATA, updatedUser);
-      
+
       // Update cached user data
       this.cacheService.set(CACHE_KEYS.USER_FAVORITES, updatedUser, 3600000);
-      
-      this.log('PROFILE_UPDATE_SUCCESS');
+
+      this.log("PROFILE_UPDATE_SUCCESS");
       return updatedUser;
     } catch (error) {
-      this.log('PROFILE_UPDATE_ERROR', '', error);
+      this.log("PROFILE_UPDATE_ERROR", "", error);
       throw this.transformAuthError(error);
     }
   }
@@ -397,7 +445,7 @@ export class AuthService implements IAuthService {
       accessToken: apiTokens.access_token || apiTokens.accessToken,
       refreshToken: apiTokens.refresh_token || apiTokens.refreshToken,
       expiresIn: apiTokens.expiresIn || 900, // Default 15 minutes
-      tokenType: apiTokens.tokenType || 'Bearer',
+      tokenType: apiTokens.tokenType || "Bearer",
     };
   }
 
@@ -425,7 +473,12 @@ export class AuthService implements IAuthService {
       const refreshToken = tokenData[STORAGE_KEYS.REFRESH_TOKEN];
 
       // Check if tokens are valid strings (not empty objects or null)
-      if (!accessToken || !refreshToken || typeof accessToken !== 'string' || typeof refreshToken !== 'string') {
+      if (
+        !accessToken ||
+        !refreshToken ||
+        typeof accessToken !== "string" ||
+        typeof refreshToken !== "string"
+      ) {
         return null;
       }
 
@@ -433,10 +486,10 @@ export class AuthService implements IAuthService {
         accessToken,
         refreshToken,
         expiresIn: 900, // Default 15 minutes
-        tokenType: 'Bearer',
+        tokenType: "Bearer",
       };
     } catch (error) {
-      console.error('[AuthService] Error retrieving tokens:', error);
+      console.error("[AuthService] Error retrieving tokens:", error);
       return null;
     }
   }
@@ -445,7 +498,9 @@ export class AuthService implements IAuthService {
    * Get stored refresh token
    */
   private async getStoredRefreshToken(): Promise<string | null> {
-    return await this.storageService.getItem<string>(STORAGE_KEYS.REFRESH_TOKEN);
+    return await this.storageService.getItem<string>(
+      STORAGE_KEYS.REFRESH_TOKEN
+    );
   }
 
   /**
@@ -473,19 +528,19 @@ export class AuthService implements IAuthService {
    */
   private transformAuthError(error: any): Error {
     if (error?.status === 401) {
-      return new Error('Email ou mot de passe incorrect');
+      return new Error("Email ou mot de passe incorrect");
     }
     if (error?.status === 409) {
-      return new Error('Un compte existe déjà avec cet email');
+      return new Error("Un compte existe déjà avec cet email");
     }
     if (error?.status === 422) {
-      return new Error('Données invalides. Vérifiez vos informations');
+      return new Error("Données invalides. Vérifiez vos informations");
     }
     if (error?.status === 429) {
-      return new Error('Trop de tentatives. Réessayez plus tard');
+      return new Error("Trop de tentatives. Réessayez plus tard");
     }
-    
-    return new Error(error?.message || 'Une erreur est survenue');
+
+    return new Error(error?.message || "Une erreur est survenue");
   }
 
   /**

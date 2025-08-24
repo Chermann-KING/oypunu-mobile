@@ -81,15 +81,17 @@ export const GuestProfileScreen: React.FC = () => {
         </View>
 
         {/* Welcome Section */}
-        <Card variant="elevated" padding={6} style={styles.welcomeCard}>
-          <View style={styles.welcomeHeader}>
-            <LogIn size={48} color={Colors.primary[500]} />
-            <Text style={styles.welcomeTitle}>Bienvenue sur O'Ypunu !</Text>
-            <Text style={styles.welcomeSubtitle}>
-              Découvrez le dictionnaire collaboratif des langues du Gabon
-            </Text>
-          </View>
-        </Card>
+        <View style={styles.welcomeCard}>
+          <Card variant="elevated" padding={6}>
+            <View style={styles.welcomeHeader}>
+              <LogIn size={48} color={Colors.primary[500]} />
+              <Text style={styles.welcomeTitle}>Bienvenue sur O'Ypunu !</Text>
+              <Text style={styles.welcomeSubtitle}>
+                Découvrez le dictionnaire collaboratif des langues du Gabon
+              </Text>
+            </View>
+          </Card>
+        </View>
 
         {/* Usage Progress */}
         <Card variant="default" padding={4}>
@@ -126,54 +128,62 @@ export const GuestProfileScreen: React.FC = () => {
         </Card>
 
         {/* Benefits Section */}
-        <View style={styles.section}>
+        <View>
           <Text style={styles.sectionTitle}>Pourquoi créer un compte ?</Text>
-          <Card variant="default" padding={4} style={styles.benefitCard}>
-            <View style={styles.benefitItem}>
-              <Star size={24} color={Colors.semantic.warning} />
-              <View style={styles.benefitContent}>
-                <Text style={styles.benefitTitle}>Favoris illimités</Text>
-                <Text style={styles.benefitDescription}>
-                  Sauvegardez tous vos mots préférés
-                </Text>
+          <View style={styles.benefitCard}>
+            <Card variant="default" padding={4}>
+              <View style={styles.benefitItem}>
+                <Star size={24} color={Colors.semantic.warning} />
+                <View style={styles.benefitContent}>
+                  <Text style={styles.benefitTitle}>Favoris illimités</Text>
+                  <Text style={styles.benefitDescription}>
+                    Sauvegardez tous vos mots préférés
+                  </Text>
+                </View>
               </View>
-            </View>
-          </Card>
-          <Card variant="default" padding={4} style={styles.benefitCard}>
-            <View style={styles.benefitItem}>
-              <BookOpen size={24} color={Colors.semantic.success} />
-              <View style={styles.benefitContent}>
-                <Text style={styles.benefitTitle}>Accès illimité</Text>
-                <Text style={styles.benefitDescription}>
-                  Consultez tous les mots sans restriction
-                </Text>
+            </Card>
+          </View>
+          <View style={styles.benefitCard}>
+            <Card variant="default" padding={4}>
+              <View style={styles.benefitItem}>
+                <BookOpen size={24} color={Colors.semantic.success} />
+                <View style={styles.benefitContent}>
+                  <Text style={styles.benefitTitle}>Accès illimité</Text>
+                  <Text style={styles.benefitDescription}>
+                    Consultez tous les mots sans restriction
+                  </Text>
+                </View>
               </View>
-            </View>
-          </Card>
-          <Card variant="default" padding={4} style={styles.benefitCard}>
-            <View style={styles.benefitItem}>
-              <TrendingUp size={24} color={Colors.semantic.info} />
-              <View style={styles.benefitContent}>
-                <Text style={styles.benefitTitle}>Suivez vos progrès</Text>
-                <Text style={styles.benefitDescription}>
-                  Statistiques détaillées de vos contributions
-                </Text>
+            </Card>
+          </View>
+          <View style={styles.benefitCard}>
+            <Card variant="default" padding={4}>
+              <View style={styles.benefitItem}>
+                <TrendingUp size={24} color={Colors.semantic.info} />
+                <View style={styles.benefitContent}>
+                  <Text style={styles.benefitTitle}>Suivez vos progrès</Text>
+                  <Text style={styles.benefitDescription}>
+                    Statistiques détaillées de vos contributions
+                  </Text>
+                </View>
               </View>
-            </View>
-          </Card>
-          <Card variant="default" padding={4} style={styles.benefitCard}>
-            <View style={styles.benefitItem}>
-              <Award size={24} color={Colors.semantic.error} />
-              <View style={styles.benefitContent}>
-                <Text style={styles.benefitTitle}>
-                  Contribuez & gagnez des points
-                </Text>
-                <Text style={styles.benefitDescription}>
-                  Aidez à enrichir le dictionnaire
-                </Text>
+            </Card>
+          </View>
+          <View style={styles.benefitCard}>
+            <Card variant="default" padding={4}>
+              <View style={styles.benefitItem}>
+                <Award size={24} color={Colors.semantic.error} />
+                <View style={styles.benefitContent}>
+                  <Text style={styles.benefitTitle}>
+                    Contribuez & gagnez des points
+                  </Text>
+                  <Text style={styles.benefitDescription}>
+                    Aidez à enrichir le dictionnaire
+                  </Text>
+                </View>
               </View>
-            </View>
-          </Card>
+            </Card>
+          </View>
         </View>
 
         {/* Call to Action */}
@@ -340,6 +350,13 @@ const styles = StyleSheet.create({
   ctaButtons: {
     width: "100%",
     gap: Spacing[3],
+  },
+  // Section heading
+  sectionTitle: {
+    ...Typography.styles.headingMedium,
+    paddingHorizontal: Spacing[4],
+    marginTop: Spacing[4],
+    marginBottom: Spacing[2],
   },
   // Modal Styles
   modalOverlay: {

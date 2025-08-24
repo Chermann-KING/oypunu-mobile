@@ -4,6 +4,7 @@
  */
 
 import { useCallback } from 'react';
+import { Alert } from 'react-native';
 import { Word } from '../../types';
 import { 
   FavoriteWord, 
@@ -17,6 +18,7 @@ import {
   useFavoritesSync as useFavoritesSyncStore
 } from '../stores/favoritesStore';
 import { useServiceProvider } from '../providers/ServiceProvider';
+import { useAuth } from './useAuth';
 
 /**
  * Main favorites hook
@@ -30,6 +32,9 @@ export const useFavoritesAPI = () => {
   const favoritesStore = useFavoritesStore();
   const collectionsStore = useCollectionsStore();
   const syncStore = useFavoritesSyncStore();
+  
+  // Auth hook pour vérifier si l'utilisateur est connecté
+  const { isAuthenticated } = useAuth();
 
   // ============ FAVORITES OPERATIONS ============
 
@@ -52,6 +57,25 @@ export const useFavoritesAPI = () => {
   }, [favoritesService, favoritesStore]);
 
   const addToFavorites = useCallback(async (word: Word, collectionId?: string) => {
+    // 🚨 VÉRIFICATION AUTHENTIFICATION
+    if (!isAuthenticated) {
+      Alert.alert(
+        'Connexion requise',
+        'Vous devez vous connecter pour ajouter des mots à vos favoris.',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { 
+            text: 'Se connecter', 
+            onPress: () => {
+              // TODO: Navigation vers écran d'authentification
+              console.log('[Favorites] Redirecting to auth screen');
+            }
+          }
+        ]
+      );
+      return false;
+    }
+    
     try {
       await favoritesService.addToFavorites(word.id, collectionId);
       
@@ -66,9 +90,28 @@ export const useFavoritesAPI = () => {
       console.error('Error adding to favorites:', error);
       return false;
     }
-  }, [favoritesService, favoritesStore, syncStore]);
+  }, [isAuthenticated, favoritesService, favoritesStore, syncStore]);
 
   const removeFromFavorites = useCallback(async (wordId: string, collectionId?: string) => {
+    // 🚨 VÉRIFICATION AUTHENTIFICATION
+    if (!isAuthenticated) {
+      Alert.alert(
+        'Connexion requise',
+        'Vous devez vous connecter pour gérer vos favoris.',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { 
+            text: 'Se connecter', 
+            onPress: () => {
+              // TODO: Navigation vers écran d'authentification
+              console.log('[Favorites] Redirecting to auth screen');
+            }
+          }
+        ]
+      );
+      return false;
+    }
+    
     try {
       await favoritesService.removeFromFavorites(wordId, collectionId);
       
@@ -89,9 +132,28 @@ export const useFavoritesAPI = () => {
       console.error('Error removing from favorites:', error);
       return false;
     }
-  }, [favoritesService, favoritesStore, syncStore]);
+  }, [isAuthenticated, favoritesService, favoritesStore, collectionsStore, syncStore]);
 
   const toggleFavorite = useCallback(async (word: Word) => {
+    // 🚨 VÉRIFICATION AUTHENTIFICATION
+    if (!isAuthenticated) {
+      Alert.alert(
+        'Connexion requise',
+        `Vous devez vous connecter pour ajouter "${word.word}" à vos favoris.`,
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { 
+            text: 'Se connecter', 
+            onPress: () => {
+              // TODO: Navigation vers écran d'authentification avec deep link
+              console.log(`[Favorites] Redirecting to auth for word: ${word.word}`);
+            }
+          }
+        ]
+      );
+      return false; // Toujours retourner false pour les invités
+    }
+    
     try {
       const newIsFavorite = await favoritesService.toggleFavorite(word);
       
@@ -108,9 +170,14 @@ export const useFavoritesAPI = () => {
       // Return current state if operation failed
       return favoritesStore.isFavorite(word.id);
     }
-  }, [favoritesService, favoritesStore, syncStore]);
+  }, [isAuthenticated, favoritesService, favoritesStore, syncStore]);
 
   const checkIsFavorite = useCallback(async (wordId: string) => {
+    // 🚨 UTILISATEURS NON AUTHENTIFIÉS : Aucun favori possible
+    if (!isAuthenticated) {
+      return false;
+    }
+    
     try {
       return await favoritesService.isFavorite(wordId);
     } catch (error) {
@@ -118,7 +185,7 @@ export const useFavoritesAPI = () => {
       // Fallback to local state
       return favoritesStore.isFavorite(wordId);
     }
-  }, [favoritesService, favoritesStore]);
+  }, [isAuthenticated, favoritesService, favoritesStore]);
 
   const searchFavorites = useCallback(async (query: string) => {
     try {
@@ -192,6 +259,14 @@ export const useFavoritesAPI = () => {
   return {
     // State
     ...favoritesStore,
+    
+    // 🚨 OVERRIDE: isFavorite pour les utilisateurs non authentifiés
+    isFavorite: (wordId: string) => {
+      if (!isAuthenticated) {
+        return false; // Les invités n'ont aucun favori
+      }
+      return favoritesStore.isFavorite(wordId);
+    },
     
     // Sync state
     lastSyncAt: syncStore.lastSyncAt,

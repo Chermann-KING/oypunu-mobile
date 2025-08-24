@@ -157,8 +157,8 @@ export const useAuthStore = create<AuthState>()(
  */
 
 export const useAuthStoreState = () => {
-  const { user, isAuthenticated, isLoading, error } = useAuthStore();
-  return { user, isAuthenticated, isLoading, error };
+  const { user, tokens, isAuthenticated, isLoading, error } = useAuthStore();
+  return { user, tokens, isAuthenticated, isLoading, error };
 };
 
 export const useAuthStoreActions = () => {

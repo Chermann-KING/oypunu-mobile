@@ -15,7 +15,7 @@ import { User } from '../../types';
  * Provides all auth functionality with automatic state management
  */
 export const useAuth = () => {
-  const { user, isAuthenticated, isLoading, error } = useAuthStoreState();
+  const { user, isAuthenticated, isLoading, error, tokens } = useAuthStoreState();
   const { login: setLogin, logout: setLogout, updateUser, setLoading, setError, clearError } = useAuthStoreActions();
   const permissions = useAuthPermissions();
   const { apiService, storageService, cacheService } = useServices();
@@ -25,6 +25,22 @@ export const useAuth = () => {
     const { createAuthService } = require('../services/AuthService');
     return createAuthService(apiService, storageService, cacheService);
   }, [apiService, storageService, cacheService]);
+
+  // 🔧 CORRECTIF: Initialiser l'ApiService avec le token au démarrage si l'utilisateur est connecté
+  useEffect(() => {
+    console.log('[useAuth] Initializing auth state...', { 
+      isAuthenticated, 
+      hasTokens: !!tokens,
+      accessToken: tokens?.accessToken ? `${tokens.accessToken.substring(0, 20)}...` : 'None' 
+    });
+
+    if (isAuthenticated && tokens?.accessToken) {
+      console.log('[useAuth] Restoring auth token to ApiService');
+      apiService.setAuthToken(tokens.accessToken);
+    } else {
+      console.log('[useAuth] No auth token to restore');
+    }
+  }, [isAuthenticated, tokens, apiService]);
 
   /**
    * Login function
@@ -74,15 +90,19 @@ export const useAuth = () => {
     
     try {
       await authService().logout();
+      // Clear auth token from API service
+      apiService.clearAuthToken();
       setLogout();
     } catch (error) {
       console.error('[useAuth] Logout error:', error);
       // Force logout even if backend call fails
+      // Clear auth token from API service
+      apiService.clearAuthToken();
       setLogout();
     } finally {
       setLoading(false);
     }
-  }, [authService, setLogout, setLoading]);
+  }, [authService, apiService, setLogout, setLoading]);
 
   /**
    * Update profile function
@@ -192,17 +212,23 @@ export const useAuth = () => {
       const authStatus = await authService().getAuthStatus();
       
       if (authStatus.isAuthenticated && authStatus.user && authStatus.tokens) {
+        // Set auth token in API service for authenticated requests
+        apiService.setAuthToken(authStatus.tokens.accessToken);
         setLogin(authStatus.user, authStatus.tokens);
       } else {
+        // Clear any leftover token and ensure guest state
+        apiService.clearAuthToken();
         setLogout();
       }
     } catch (error) {
       console.error('[useAuth] Initialize error:', error);
+      // Clear any leftover token and ensure guest state
+      apiService.clearAuthToken();
       setLogout();
     } finally {
       setLoading(false);
     }
-  }, [authService, setLogin, setLogout, setLoading]);
+  }, [authService, apiService, setLogin, setLogout, setLoading]);
 
   return {
     // State
