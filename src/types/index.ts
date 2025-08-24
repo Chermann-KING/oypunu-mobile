@@ -10,6 +10,61 @@ export interface Word {
   isFavorite: boolean;
 }
 
+export interface DetailedWord extends Word {
+  // Informations supplémentaires disponibles dans les détails
+  etymology?: string;
+  meanings: Array<{
+    partOfSpeech: string;
+    definitions: Array<{
+      definition: string;
+      examples: string[];
+    }>;
+  }>;
+  languageInfo?: {
+    id: string;
+    name: string;
+    nativeName?: string;
+    flagEmoji?: string;
+    iso639_1?: string;
+    iso639_3?: string;
+  };
+  categoryInfo?: {
+    id: string;
+    name: string;
+  };
+  authorInfo?: {
+    id: string;
+    username?: string;
+    name?: string;
+  };
+  audioFiles?: Array<{
+    url: string;
+    type: string;
+    language?: string;
+  }>;
+  // Nouvelles informations détaillées
+  synonyms?: Array<{
+    id: string;
+    word: string;
+    language: string;
+  }>;
+  antonyms?: Array<{
+    id: string;
+    word: string;
+    language: string;
+  }>;
+  translations?: Array<{
+    id: string;
+    word: string;
+    language: string;
+    languageName: string;
+  }>;
+  examples?: string[]; // Exemples regroupés de toutes les définitions
+  status: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface Message {
   id: string;
   contactName: string;
