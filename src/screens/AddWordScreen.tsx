@@ -20,6 +20,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, Card, Input } from "../design-system/components";
 import { Colors, Spacing, Typography } from "../design-system";
+import { useRouter } from "expo-router";
 import {
   useDictionary,
   useDictionaryContributor,
@@ -44,6 +45,7 @@ type RecordingRef = {
 export const AddWordScreen: React.FC<{ onBack?: () => void }> = ({
   onBack,
 }) => {
+  const router = useRouter();
   // Form state
   const [word, setWord] = useState("");
   const [language, setLanguage] = useState("");
@@ -83,6 +85,8 @@ export const AddWordScreen: React.FC<{ onBack?: () => void }> = ({
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // handleClose sera déclaré après isDirty
 
   // Services
   const {
@@ -323,6 +327,54 @@ export const AddWordScreen: React.FC<{ onBack?: () => void }> = ({
     },
     []
   );
+
+  // Détection de modifications (formulaire “sale”) – après la déclaration de senses
+  const isDirty = useMemo(() => {
+    const hasSenseContent = senses.some(
+      (s) =>
+        s.definition.trim().length > 0 ||
+        s.examplesText.trim().length > 0 ||
+        s.synonymsText.trim().length > 0 ||
+        s.antonymsText.trim().length > 0
+    );
+    return (
+      !!word.trim() ||
+      !!language ||
+      !!category ||
+      !!pronunciation.trim() ||
+      !!etymology.trim() ||
+      !!partOfSpeech ||
+      hasSenseContent ||
+      !!pickedFile ||
+      !!recording
+    );
+  }, [
+    word,
+    language,
+    category,
+    pronunciation,
+    etymology,
+    partOfSpeech,
+    senses,
+    pickedFile,
+    recording,
+  ]);
+
+  const handleClose = useCallback(() => {
+    const goBack = () => {
+      if (onBack) onBack();
+      else router.back();
+    };
+    if (!isDirty) return goBack();
+    Alert.alert(
+      "Abandonner l'ajout ?",
+      "Vos modifications non enregistrées seront perdues.",
+      [
+        { text: "Continuer", style: "cancel" },
+        { text: "Quitter", style: "destructive", onPress: goBack },
+      ]
+    );
+  }, [isDirty, onBack, router]);
 
   // Split util: '#' ou nouvelle ligne
   const splitList = useCallback((text: string): string[] => {
@@ -607,7 +659,16 @@ export const AddWordScreen: React.FC<{ onBack?: () => void }> = ({
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Ajouter un mot</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>Ajouter un mot</Text>
+          <TouchableOpacity
+            onPress={handleClose}
+            accessibilityLabel="Fermer"
+            style={styles.closeButton}
+          >
+            <X size={20} color={Colors.text.primary} />
+          </TouchableOpacity>
+        </View>
         <Text style={styles.subtitle}>
           Renseignez les informations et ajoutez une prononciation.
         </Text>
@@ -626,7 +687,7 @@ export const AddWordScreen: React.FC<{ onBack?: () => void }> = ({
           <View>
             <Card>
               <Input
-                label="Mot"
+                label="Mot (obligatoire)"
                 value={word}
                 onChangeText={setWord}
                 placeholder="Ex: Mbolo"
@@ -638,7 +699,7 @@ export const AddWordScreen: React.FC<{ onBack?: () => void }> = ({
                 activeOpacity={0.7}
               >
                 <Input
-                  label="Langue"
+                  label="Langue (obligatoire)"
                   value={languageLabel || (language ? language : "")}
                   onChangeText={() => {}}
                   placeholder={
@@ -768,7 +829,9 @@ export const AddWordScreen: React.FC<{ onBack?: () => void }> = ({
           {/* Section sens et définitions */}
           <View style={styles.cardWrapper}>
             <Card>
-              <Text style={styles.sectionTitle}>Sens et définitions</Text>
+              <Text style={styles.sectionTitle}>
+                Sens et définitions (1 obligatoire)
+              </Text>
               <Text style={[styles.hint, { marginBottom: Spacing[2] }]}>
                 Ajoutez au moins un sens avec sa définition. Vous pouvez ajouter
                 plusieurs exemples, synonymes et antonymes pour chaque sens.
@@ -859,7 +922,7 @@ export const AddWordScreen: React.FC<{ onBack?: () => void }> = ({
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Choisir une langue approuvée</Text>
+            <Text style={styles.modalTitle}>Choisir une langue</Text>
             {isLoadingLanguages ? (
               <Text style={styles.hint}>Chargement des langues…</Text>
             ) : activeLanguages.length === 0 ? (
@@ -1063,8 +1126,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing[4],
     paddingVertical: Spacing[4],
   },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   title: {
     ...Typography.styles.headingLarge,
+  },
+  closeButton: {
+    padding: Spacing[2],
+    marginLeft: Spacing[2],
   },
   subtitle: {
     ...Typography.styles.labelMedium,
