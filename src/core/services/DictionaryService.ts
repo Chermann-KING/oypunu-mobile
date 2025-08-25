@@ -816,11 +816,7 @@ export class DictionaryService implements IDictionaryService {
       // Fallback using search endpoint
       const searchResp = await this.apiService.get<{
         total?: number;
-      }>(
-        `/words/search?language=${encodeURIComponent(
-          language
-        )}&status=approved&limit=1`
-      );
+      }>(`/words/search?languages=${encodeURIComponent(language)}&limit=1`);
       return typeof searchResp.data.total === "number"
         ? searchResp.data.total
         : 0;
