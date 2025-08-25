@@ -6,16 +6,25 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Settings, Heart, BookOpen, Award, Edit3 } from "lucide-react-native";
+import {
+  Settings,
+  Heart,
+  BookOpen,
+  Award,
+  Edit3,
+  UserPlus,
+} from "lucide-react-native";
 import { Colors, Spacing, Typography } from "../../design-system";
 import { Card, Button, Avatar } from "../../design-system/components";
 import { useAuth } from "../../core/hooks/useAuth";
 import { useFavoritesStatsAPI } from "../../core/hooks/useFavorites";
 import { useDictionaryContributor } from "../../core/hooks/useDictionary";
 import { useUserStats } from "../../core/hooks/useUserStats";
+import { useServiceProvider } from "../../core/providers/ServiceProvider";
 import GuestProfileScreen from "./GuestProfileScreen";
 
 /**
@@ -45,6 +54,9 @@ export const ProfileScreen: React.FC = () => {
     loadUserStats,
     loadContributionStats,
   } = useUserStats();
+  const { contributorRequestService } = useServiceProvider() as any;
+  const [hasPendingContributorRequest, setHasPendingContributorRequest] =
+    React.useState<boolean | null>(null);
 
   useEffect(() => {
     if (isAuthenticated && user && user.id) {
@@ -64,6 +76,14 @@ export const ProfileScreen: React.FC = () => {
         getContributionStats().catch((error) =>
           console.error("Failed to load dictionary contribution stats:", error)
         );
+      }
+
+      // Check if a contributor request is already pending for regular users
+      if (user.role === "user") {
+        contributorRequestService
+          ?.hasExistingRequest?.()
+          .then((exists: boolean) => setHasPendingContributorRequest(exists))
+          .catch(() => setHasPendingContributorRequest(false));
       }
     }
   }, [isAuthenticated, user?.id]);
@@ -219,6 +239,29 @@ export const ProfileScreen: React.FC = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Paramètres</Text>
+          {user.role === "user" && (
+            <Card
+              variant="default"
+              padding={4}
+              onPress={() =>
+                hasPendingContributorRequest
+                  ? Alert.alert(
+                      "Demande en cours",
+                      "Votre demande de contribution est déjà en cours de traitement."
+                    )
+                  : router.push("/(auth)/contributor-request")
+              }
+            >
+              <View style={styles.menuItem}>
+                <UserPlus size={20} color={Colors.text.secondary} />
+                <Text style={styles.menuText}>
+                  {hasPendingContributorRequest
+                    ? "Demande de contribution (en cours)"
+                    : "Demander le rôle Contributeur"}
+                </Text>
+              </View>
+            </Card>
+          )}
           <Card
             variant="default"
             padding={4}
