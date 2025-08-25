@@ -989,7 +989,7 @@ export class DictionaryService implements IDictionaryService {
     data: Omit<Language, "id" | "status">
   ): Promise<Language> {
     const response = await this.apiService.post<Language>(
-      "/dictionary/languages",
+      "/languages/propose",
       data
     );
 

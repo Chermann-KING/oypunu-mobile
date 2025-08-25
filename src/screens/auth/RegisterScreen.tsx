@@ -3,36 +3,46 @@
  * Follows SOLID principles - Single Responsibility for register UI
  */
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { useAuth } from '../../core/hooks/useAuth';
-import { Colors, Spacing, Typography } from '../../design-system';
-import { Input, Button, SocialLoginButton } from '../../design-system/components';
+import React, { useState } from "react";
+import { View, Text, StyleSheet, Alert, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useAuth } from "../../core/hooks/useAuth";
+import { Colors, Spacing, Typography } from "../../design-system";
+import {
+  Input,
+  Button,
+  SocialLoginButton,
+} from "../../design-system/components";
 
 export const RegisterScreen: React.FC = () => {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [username, setUsername] = useState('');
+  const params = useLocalSearchParams();
+  const returnTo =
+    typeof params.returnTo === "string" ? params.returnTo : undefined;
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [username, setUsername] = useState("");
   const { register, socialLogin, isLoading, error } = useAuth();
 
   const handleRegister = async () => {
     // Validation
     if (!email || !password || !username) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+      Alert.alert("Erreur", "Veuillez remplir tous les champs");
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Erreur', 'Les mots de passe ne correspondent pas');
+      Alert.alert("Erreur", "Les mots de passe ne correspondent pas");
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Erreur', 'Le mot de passe doit contenir au moins 6 caractères');
+      Alert.alert(
+        "Erreur",
+        "Le mot de passe doit contenir au moins 6 caractères"
+      );
       return;
     }
 
@@ -44,28 +54,34 @@ export const RegisterScreen: React.FC = () => {
         confirmPassword,
         acceptTerms: true,
       });
-      
-      // Navigate back to the previous screen (usually the profile tab)
-      if (router.canGoBack()) {
+
+      // Navigate back or to requested destination
+      if (returnTo) {
+        router.replace({ pathname: returnTo as any });
+      } else if (router.canGoBack()) {
         router.back();
       } else {
-        router.push('/(tabs)');
+        router.push("/(tabs)");
       }
     } catch (error) {
       // Error is already handled by the hook and stored in state
-      console.error('[RegisterScreen] Register error:', error);
+      console.error("[RegisterScreen] Register error:", error);
     }
   };
 
-  const handleSocialLogin = async (provider: 'google' | 'facebook' | 'twitter') => {
+  const handleSocialLogin = async (
+    provider: "google" | "facebook" | "twitter"
+  ) => {
     try {
       await socialLogin(provider);
-      
-      // Navigate back to the previous screen (usually the profile tab)
-      if (router.canGoBack()) {
+
+      // Navigate back or to requested destination
+      if (returnTo) {
+        router.replace({ pathname: returnTo as any });
+      } else if (router.canGoBack()) {
         router.back();
       } else {
-        router.push('/(tabs)');
+        router.push("/(tabs)");
       }
     } catch (error) {
       // Error is already handled by the hook and stored in state
@@ -75,7 +91,10 @@ export const RegisterScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+      >
         <Text style={styles.title}>Inscription</Text>
         <Text style={styles.subtitle}>Créez votre compte O'Ypunu</Text>
 
@@ -84,19 +103,19 @@ export const RegisterScreen: React.FC = () => {
           <View style={styles.socialSection}>
             <SocialLoginButton
               provider="google"
-              onPress={() => handleSocialLogin('google')}
+              onPress={() => handleSocialLogin("google")}
               disabled={isLoading}
               loading={isLoading}
             />
             <SocialLoginButton
               provider="facebook"
-              onPress={() => handleSocialLogin('facebook')}
+              onPress={() => handleSocialLogin("facebook")}
               disabled={isLoading}
               loading={isLoading}
             />
             <SocialLoginButton
               provider="twitter"
-              onPress={() => handleSocialLogin('twitter')}
+              onPress={() => handleSocialLogin("twitter")}
               disabled={isLoading}
               loading={isLoading}
             />
@@ -126,7 +145,7 @@ export const RegisterScreen: React.FC = () => {
             autoCapitalize="none"
             autoComplete="email"
           />
-          
+
           <Input
             placeholder="Mot de passe"
             value={password}
@@ -143,9 +162,7 @@ export const RegisterScreen: React.FC = () => {
             autoComplete="new-password"
           />
 
-          {error && (
-            <Text style={styles.errorText}>{error}</Text>
-          )}
+          {error && <Text style={styles.errorText}>{error}</Text>}
 
           <Button
             title={isLoading ? "Inscription..." : "S'inscrire"}
@@ -170,18 +187,18 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     paddingHorizontal: Spacing[6],
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingVertical: Spacing[8],
   },
   title: {
     ...Typography.styles.headingLarge,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: Spacing[2],
   },
   subtitle: {
     ...Typography.styles.bodyLarge,
     color: Colors.text.secondary,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: Spacing[8],
   },
   form: {
@@ -191,8 +208,8 @@ const styles = StyleSheet.create({
     gap: Spacing[3],
   },
   divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginVertical: Spacing[4],
   },
   dividerLine: {
@@ -208,7 +225,7 @@ const styles = StyleSheet.create({
   errorText: {
     ...Typography.styles.bodySmall,
     color: Colors.semantic.error,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: Spacing[2],
   },
 });
