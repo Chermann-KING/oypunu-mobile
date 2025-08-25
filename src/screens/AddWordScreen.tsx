@@ -37,6 +37,7 @@ import {
   Plus,
 } from "lucide-react-native";
 import type { CreateWordData } from "../core/interfaces/IDictionaryService";
+// Auth status non requis ici: l'accès au flux est déjà réservé en amont
 
 type RecordingRef = {
   recording: Audio.Recording | null;
@@ -98,8 +99,11 @@ export const AddWordScreen: React.FC<{ onBack?: () => void }> = ({
     isLoadingCategories,
     getApprovedWordCount,
   } = useDictionary();
-  const { createWord, uploadWordAudio, createCategory } =
+  const { createWord, uploadWordAudio, createCategory, proposeLanguage } =
     useDictionaryContributor();
+  const handleStartProposeLanguage = useCallback(() => {
+    setIsProposingLanguage(true);
+  }, []);
 
   const didInit = useRef(false);
   useEffect(() => {
@@ -151,6 +155,13 @@ export const AddWordScreen: React.FC<{ onBack?: () => void }> = ({
   // Sélecteur de langue (modal)
   const [isLangModalVisible, setLangModalVisible] = useState(false);
   const [languageLabel, setLanguageLabel] = useState("");
+  const [isProposingLanguage, setIsProposingLanguage] = useState(false);
+  const [newLangName, setNewLangName] = useState("");
+  const [newLangNativeName, setNewLangNativeName] = useState("");
+  const [newLangIso1, setNewLangIso1] = useState("");
+  const [newLangIso3, setNewLangIso3] = useState("");
+  const [newLangRegion, setNewLangRegion] = useState("");
+  const [isCreatingLanguage, setIsCreatingLanguage] = useState(false);
   const openLanguagePicker = useCallback(() => setLangModalVisible(true), []);
   const closeLanguagePicker = useCallback(() => setLangModalVisible(false), []);
   const handleSelectLanguage = useCallback(
@@ -922,8 +933,145 @@ export const AddWordScreen: React.FC<{ onBack?: () => void }> = ({
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Choisir une langue</Text>
-            {isLoadingLanguages ? (
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.modalTitle}>
+                {isProposingLanguage
+                  ? "Proposer une langue"
+                  : "Choisir une langue"}
+              </Text>
+              {!isProposingLanguage && (
+                <Button
+                  title="Proposer"
+                  onPress={handleStartProposeLanguage}
+                  variant="secondary"
+                  size="small"
+                  icon={<Plus size={14} color={Colors.text.primary} />}
+                />
+              )}
+            </View>
+            {isProposingLanguage ? (
+              <View>
+                <Input
+                  label="Nom (obligatoire)"
+                  value={newLangName}
+                  onChangeText={setNewLangName}
+                  placeholder="Ex: Punu"
+                />
+                <Input
+                  label="Nom natif (obligatoire)"
+                  value={newLangNativeName}
+                  onChangeText={setNewLangNativeName}
+                  placeholder="Ex: Yipunu"
+                />
+                <Input
+                  label="Code ISO 639-1 (2 lettres, optionnel)"
+                  value={newLangIso1}
+                  onChangeText={setNewLangIso1}
+                  placeholder="ex: fr"
+                  autoCapitalize="none"
+                />
+                <Input
+                  label="Code ISO 639-3 (3 lettres, recommandé)"
+                  value={newLangIso3}
+                  onChangeText={setNewLangIso3}
+                  placeholder="ex: ypu"
+                  autoCapitalize="none"
+                />
+                <Input
+                  label="Région (optionnel)"
+                  value={newLangRegion}
+                  onChangeText={setNewLangRegion}
+                  placeholder="Ex: Afrique Centrale"
+                />
+                <View
+                  style={{
+                    flexDirection: "row",
+                    gap: Spacing[2],
+                    marginTop: Spacing[2],
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Button
+                      title="Annuler"
+                      onPress={() => {
+                        setIsProposingLanguage(false);
+                        setNewLangName("");
+                        setNewLangNativeName("");
+                        setNewLangIso1("");
+                        setNewLangIso3("");
+                        setNewLangRegion("");
+                      }}
+                      variant="tertiary"
+                      size="small"
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Button
+                      title="Soumettre"
+                      onPress={async () => {
+                        const name = newLangName.trim();
+                        const nativeName = newLangNativeName.trim();
+                        if (!name || !nativeName) {
+                          Alert.alert(
+                            "Champs requis",
+                            "Nom et Nom natif sont obligatoires."
+                          );
+                          return;
+                        }
+                        setIsCreatingLanguage(true);
+                        try {
+                          const created = await proposeLanguage({
+                            name,
+                            nativeName,
+                            iso639_1: newLangIso1.trim() || undefined,
+                            iso639_3: newLangIso3.trim() || undefined,
+                            region: newLangRegion.trim() || undefined,
+                          } as any);
+                          // Recharger les langues
+                          const refreshed = await loadLanguages();
+                          const createdId =
+                            (created as any)?.id || (created as any)?._id;
+                          const isVisibleNow = !!(refreshed || []).find(
+                            (l: any) =>
+                              String(l?.id || l?._id) === String(createdId)
+                          );
+                          setIsProposingLanguage(false);
+                          setNewLangName("");
+                          setNewLangNativeName("");
+                          setNewLangIso1("");
+                          setNewLangIso3("");
+                          setNewLangRegion("");
+                          if (isVisibleNow && createdId) {
+                            // Immédiatement visible (peu probable si modération)
+                            handleSelectLanguage(created as any);
+                            Alert.alert(
+                              "Langue créée",
+                              "La langue est disponible et sélectionnée."
+                            );
+                          } else {
+                            Alert.alert(
+                              "Proposition envoyée",
+                              "Votre langue a été soumise pour approbation. Elle apparaîtra après validation."
+                            );
+                          }
+                        } catch (e: any) {
+                          Alert.alert(
+                            "Erreur",
+                            e?.message ?? "Impossible de proposer la langue."
+                          );
+                        } finally {
+                          setIsCreatingLanguage(false);
+                        }
+                      }}
+                      variant="primary"
+                      size="small"
+                      loading={isCreatingLanguage}
+                      disabled={isCreatingLanguage}
+                    />
+                  </View>
+                </View>
+              </View>
+            ) : isLoadingLanguages ? (
               <Text style={styles.hint}>Chargement des langues…</Text>
             ) : activeLanguages.length === 0 ? (
               <Text style={styles.hint}>

@@ -18,6 +18,8 @@ import { useFavoritesAPI } from "../core/hooks/useFavorites";
 import { useLanguageMapping } from "../core/hooks/useLanguageMapping";
 import { WordDetailsScreen } from "./WordDetailsScreen";
 import AddWordScreen from "./AddWordScreen";
+import { useAuthStatus } from "../core/hooks/useAuth";
+import { useRouter } from "expo-router";
 
 export const DictionaryScreen: React.FC = () => {
   // State
@@ -25,6 +27,8 @@ export const DictionaryScreen: React.FC = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [wordNavigationStack, setWordNavigationStack] = useState<string[]>([]);
   const [isAddingWord, setIsAddingWord] = useState(false);
+  const { isContributor } = useAuthStatus();
+  const router = useRouter();
 
   // Hooks
   const {
@@ -308,8 +312,23 @@ export const DictionaryScreen: React.FC = () => {
   }, []);
 
   const handleOpenAddWord = useCallback(() => {
+    if (!isContributor) {
+      Alert.alert(
+        "Accès contributeur requis",
+        "Seuls les contributeurs peuvent ajouter des mots. Faites une demande pour obtenir le rôle Contributeur.",
+        [
+          { text: "Plus tard", style: "cancel" },
+          {
+            text: "Demander le rôle",
+            style: "default",
+            onPress: () => router.push("/(auth)/contributor-request"),
+          },
+        ]
+      );
+      return;
+    }
     setIsAddingWord(true);
-  }, []);
+  }, [isContributor, router]);
 
   const handleCloseAddWord = useCallback(() => {
     setIsAddingWord(false);

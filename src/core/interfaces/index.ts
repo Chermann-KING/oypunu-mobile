@@ -4,21 +4,24 @@
 
 export * from "./IApiService";
 export * from "./IAuthService";
-export * from "./IStorageService";
 export * from "./ICacheService";
-// Éviter le conflit de nom 'Language' entre IDictionaryService et ILanguageService
+export * from "./ICategoryService";
+export * from "./ICommunityService";
+// Re-export IDictionaryService selectively to avoid 'Language' name collision
 export type {
+  IDictionaryService,
   SearchFilters,
   SearchOptions,
   SearchResult,
   CreateWordData,
   Category,
-  IDictionaryService,
 } from "./IDictionaryService";
 export * from "./IFavoritesService";
+export * from "./IFavoritesSyncService";
+// ILanguageService exports its own Language type; keep this as the canonical Language
 export * from "./ILanguageService";
-export * from "./ICategoryService";
+export * from "./IMessagingService";
+export * from "./IStorageService";
 export * from "./IUserService";
 export * from "./IUserStatsService";
-export * from "./ICommunityService";
-export * from "./IMessagingService";
+export * from "./IContributorRequestService";

@@ -4,9 +4,14 @@
  * Implements IApiService interface (DIP)
  */
 
-import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
-import { IApiService, ApiResponse, ApiError, RequestConfig } from '../interfaces/IApiService';
-import { getApiConfig } from '../../config/environment';
+import axios, { AxiosInstance, AxiosResponse, AxiosError } from "axios";
+import {
+  IApiService,
+  ApiResponse,
+  ApiError,
+  RequestConfig,
+} from "../interfaces/IApiService";
+import { getApiConfig } from "../../config/environment";
 
 /**
  * Configuration for API service
@@ -48,8 +53,8 @@ export class ApiService implements IApiService {
       baseURL: this.config.baseURL,
       timeout: this.config.timeout,
       headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        "Content-Type": "application/json",
+        Accept: "application/json",
       },
     });
   }
@@ -71,7 +76,7 @@ export class ApiService implements IApiService {
       },
       (error) => {
         if (this.config.enableLogging) {
-          console.error('[API] Request Error:', error);
+          console.error("[API] Request Error:", error);
         }
         return Promise.reject(error);
       }
@@ -87,7 +92,14 @@ export class ApiService implements IApiService {
       },
       async (error) => {
         if (this.config.enableLogging) {
-          console.error('[API] Response Error:', error.response?.data || error.message);
+          const endpoint = error.config?.url || "";
+          const status = error.response?.status;
+          const payload = error.response?.data || error.message;
+          const isExpectedAuthError =
+            (status === 401 || status === 403) &&
+            endpoint.includes("/contributor-requests/me");
+          const logFn = isExpectedAuthError ? console.warn : console.error;
+          logFn("[API] Response Error:", payload);
         }
 
         // Handle token refresh logic here if needed
@@ -100,10 +112,10 @@ export class ApiService implements IApiService {
         if (this.shouldRetry(error) && error.config && !error.config._retry) {
           error.config._retry = true;
           error.config._retryCount = (error.config._retryCount || 0) + 1;
-          
+
           if (error.config._retryCount <= this.config.retries) {
             const delay = Math.pow(2, error.config._retryCount) * 1000; // Exponential backoff
-            await new Promise(resolve => setTimeout(resolve, delay));
+            await new Promise((resolve) => setTimeout(resolve, delay));
             return this.client.request(error.config);
           }
         }
@@ -118,7 +130,10 @@ export class ApiService implements IApiService {
    */
   private shouldRetry(error: AxiosError): boolean {
     // Retry on network errors and 5xx server errors
-    return !error.response || (error.response.status >= 500 && error.response.status < 600);
+    return (
+      !error.response ||
+      (error.response.status >= 500 && error.response.status < 600)
+    );
   }
 
   /**
@@ -137,16 +152,16 @@ export class ApiService implements IApiService {
       // Network error
       return {
         status: 0,
-        message: 'Network error - please check your connection',
-        code: 'NETWORK_ERROR',
+        message: "Network error - please check your connection",
+        code: "NETWORK_ERROR",
         details: error.request,
       };
     } else {
       // Other error
       return {
         status: 0,
-        message: error.message || 'An unexpected error occurred',
-        code: 'UNKNOWN_ERROR',
+        message: error.message || "An unexpected error occurred",
+        code: "UNKNOWN_ERROR",
         details: error,
       };
     }
@@ -178,45 +193,81 @@ export class ApiService implements IApiService {
 
   // IApiService implementation
 
-  async get<T>(endpoint: string, config?: RequestConfig): Promise<ApiResponse<T>> {
+  async get<T>(
+    endpoint: string,
+    config?: RequestConfig
+  ): Promise<ApiResponse<T>> {
     try {
-      const response = await this.client.get<T>(endpoint, this.mergeConfig(config));
+      const response = await this.client.get<T>(
+        endpoint,
+        this.mergeConfig(config)
+      );
       return this.transformResponse(response);
     } catch (error) {
       throw error; // Already transformed by interceptor
     }
   }
 
-  async post<T, D = any>(endpoint: string, data?: D, config?: RequestConfig): Promise<ApiResponse<T>> {
+  async post<T, D = any>(
+    endpoint: string,
+    data?: D,
+    config?: RequestConfig
+  ): Promise<ApiResponse<T>> {
     try {
-      const response = await this.client.post<T>(endpoint, data, this.mergeConfig(config));
+      const response = await this.client.post<T>(
+        endpoint,
+        data,
+        this.mergeConfig(config)
+      );
       return this.transformResponse(response);
     } catch (error) {
       throw error; // Already transformed by interceptor
     }
   }
 
-  async put<T, D = any>(endpoint: string, data?: D, config?: RequestConfig): Promise<ApiResponse<T>> {
+  async put<T, D = any>(
+    endpoint: string,
+    data?: D,
+    config?: RequestConfig
+  ): Promise<ApiResponse<T>> {
     try {
-      const response = await this.client.put<T>(endpoint, data, this.mergeConfig(config));
+      const response = await this.client.put<T>(
+        endpoint,
+        data,
+        this.mergeConfig(config)
+      );
       return this.transformResponse(response);
     } catch (error) {
       throw error; // Already transformed by interceptor
     }
   }
 
-  async delete<T>(endpoint: string, config?: RequestConfig): Promise<ApiResponse<T>> {
+  async delete<T>(
+    endpoint: string,
+    config?: RequestConfig
+  ): Promise<ApiResponse<T>> {
     try {
-      const response = await this.client.delete<T>(endpoint, this.mergeConfig(config));
+      const response = await this.client.delete<T>(
+        endpoint,
+        this.mergeConfig(config)
+      );
       return this.transformResponse(response);
     } catch (error) {
       throw error; // Already transformed by interceptor
     }
   }
 
-  async patch<T, D = any>(endpoint: string, data?: D, config?: RequestConfig): Promise<ApiResponse<T>> {
+  async patch<T, D = any>(
+    endpoint: string,
+    data?: D,
+    config?: RequestConfig
+  ): Promise<ApiResponse<T>> {
     try {
-      const response = await this.client.patch<T>(endpoint, data, this.mergeConfig(config));
+      const response = await this.client.patch<T>(
+        endpoint,
+        data,
+        this.mergeConfig(config)
+      );
       return this.transformResponse(response);
     } catch (error) {
       throw error; // Already transformed by interceptor
@@ -224,11 +275,11 @@ export class ApiService implements IApiService {
   }
 
   setAuthToken(token: string): void {
-    this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    this.client.defaults.headers.common["Authorization"] = `Bearer ${token}`;
   }
 
   clearAuthToken(): void {
-    delete this.client.defaults.headers.common['Authorization'];
+    delete this.client.defaults.headers.common["Authorization"];
   }
 
   setBaseUrl(url: string): void {
@@ -248,7 +299,7 @@ export class ApiService implements IApiService {
    */
   updateConfig(newConfig: Partial<ApiServiceConfig>): void {
     this.config = { ...this.config, ...newConfig };
-    
+
     // Update client if baseURL or timeout changed
     if (newConfig.baseURL) {
       this.client.defaults.baseURL = newConfig.baseURL;
