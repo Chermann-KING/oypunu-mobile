@@ -1,6 +1,7 @@
 /**
  * @fileoverview Favorites Service Implementation
  * Follows SOLID principles - Single Responsibility for favorites API operations
+ * Enhanced with robust synchronization via FavoritesSyncService
  */
 
 import { Word } from "../../types";
@@ -13,10 +14,12 @@ import {
 import { IApiService } from "../interfaces/IApiService";
 import { ICacheService } from "../interfaces/ICacheService";
 import { IStorageService } from "../interfaces/IStorageService";
+import { IFavoritesSyncService } from "../interfaces/IFavoritesSyncService";
 
 /**
  * Concrete Favorites Service
- * Handles all favorites-related API operations with offline support
+ * Handles all favorites-related API operations with robust offline support
+ * Uses FavoritesSyncService for reliable synchronization
  */
 export class FavoritesService implements IFavoritesService {
   private readonly CACHE_TTL = {
@@ -28,8 +31,12 @@ export class FavoritesService implements IFavoritesService {
   constructor(
     private apiService: IApiService,
     private cacheService: ICacheService,
-    private storageService: IStorageService
-  ) {}
+    private storageService: IStorageService,
+    private syncService: IFavoritesSyncService
+  ) {
+    // Démarrer la synchronisation automatique
+    this.syncService.startAutoSync();
+  }
 
   // Helper: transforme un document Word backend en FavoriteWord (plat)
   private transformBackendWordToFavorite(backend: any): FavoriteWord {
@@ -111,12 +118,25 @@ export class FavoritesService implements IFavoritesService {
   }
 
   /**
-   * Add word to favorites (LOCAL-ONLY until API 401 is fixed)
+   * Add word to favorites with robust synchronization
    */
   async addToFavorites(wordId: string, collectionId?: string): Promise<void> {
-    // Backend: POST /favorite-words/:wordId
-    await this.apiService.post(`/favorite-words/${encodeURIComponent(wordId)}`);
-    // Invalidate caches
+    try {
+      // Essayer d'abord l'API directement
+      await this.apiService.post(`/favorite-words/${encodeURIComponent(wordId)}`);
+      console.log(`[FavoritesService] Successfully added ${wordId} to favorites via API`);
+    } catch (error) {
+      console.log(`[FavoritesService] API call failed, adding to sync queue: ${error}`);
+      
+      // Ajouter à la queue de synchronisation pour retry ultérieur
+      await this.syncService.addToQueue({
+        type: 'add',
+        wordId,
+        maxRetries: 3
+      });
+    }
+
+    // Invalidate caches pour forcer un reload
     this.cacheService.delete("user-favorites");
     this.cacheService.delete("favorites-stats");
     if (collectionId) {
@@ -125,17 +145,28 @@ export class FavoritesService implements IFavoritesService {
   }
 
   /**
-   * Remove word from favorites (LOCAL-ONLY until API 401 is fixed)
+   * Remove word from favorites with robust synchronization
    */
   async removeFromFavorites(
     wordId: string,
     collectionId?: string
   ): Promise<void> {
-    // Backend: DELETE /favorite-words/:wordId
-    await this.apiService.delete(
-      `/favorite-words/${encodeURIComponent(wordId)}`
-    );
-    // Invalidate caches
+    try {
+      // Essayer d'abord l'API directement
+      await this.apiService.delete(`/favorite-words/${encodeURIComponent(wordId)}`);
+      console.log(`[FavoritesService] Successfully removed ${wordId} from favorites via API`);
+    } catch (error) {
+      console.log(`[FavoritesService] API call failed, adding to sync queue: ${error}`);
+      
+      // Ajouter à la queue de synchronisation pour retry ultérieur
+      await this.syncService.addToQueue({
+        type: 'remove',
+        wordId,
+        maxRetries: 3
+      });
+    }
+
+    // Invalidate caches pour forcer un reload
     this.cacheService.delete("user-favorites");
     this.cacheService.delete("favorites-stats");
     if (collectionId) {
@@ -144,25 +175,35 @@ export class FavoritesService implements IFavoritesService {
   }
 
   /**
-   * Check if word is in favorites (LOCAL-ONLY until API 401 is fixed)
+   * Check if word is in favorites with reliable fallback
    */
   async isFavorite(wordId: string): Promise<boolean> {
-    // Skip API call due to 401 errors, use local storage directly
     try {
-      // Backend: GET /favorite-words/check/:wordId returns boolean
+      // Essayer d'abord l'API
       const response = await this.apiService.get<boolean>(
         `/favorite-words/check/${encodeURIComponent(wordId)}`
       );
       return !!response.data;
     } catch (error) {
-      console.error(
-        "[FavoritesService] Error checking favorite status, fallback to cache:",
-        error
-      );
-      const cached = await this.cacheService.get<FavoriteWord[]>(
-        "user-favorites"
-      );
-      if (cached) return cached.some((fav) => fav.id === wordId);
+      console.log(`[FavoritesService] API check failed, using local fallback: ${error}`);
+      
+      // Fallback vers le cache en premier
+      const cached = await this.cacheService.get<FavoriteWord[]>("user-favorites");
+      if (cached) {
+        return cached.some((fav) => fav.id === wordId);
+      }
+
+      // Fallback vers le storage local
+      const localFavorites = await this.storageService.getItem<string>("favorites");
+      if (localFavorites) {
+        try {
+          const favorites: FavoriteWord[] = JSON.parse(localFavorites);
+          return favorites.some((fav) => fav.id === wordId);
+        } catch {
+          console.error('[FavoritesService] Failed to parse local favorites');
+        }
+      }
+
       return false;
     }
   }
@@ -173,25 +214,38 @@ export class FavoritesService implements IFavoritesService {
   async toggleFavorite(word: Word): Promise<boolean> {
     const isCurrentlyFavorite = await this.isFavorite(word.id);
 
-    try {
-      if (isCurrentlyFavorite) {
-        await this.removeFromFavorites(word.id);
-        console.log(`[FavoritesService] Toggled OFF favorite for ${word.word}`);
-        return false;
-      } else {
-        await this.addToFavorites(word.id);
-        console.log(`[FavoritesService] Toggled ON favorite for ${word.word}`);
-        return true;
-      }
-    } catch (error) {
-      console.error(
-        `[FavoritesService] Toggle failed for ${word.word}, falling back to local-only:`,
-        error
-      );
-
-      // En cas d'erreur API, faire le toggle en local seulement
-      return !isCurrentlyFavorite; // Retourner l'opposé de l'état actuel
+    if (isCurrentlyFavorite) {
+      await this.removeFromFavorites(word.id);
+      console.log(`[FavoritesService] Toggled OFF favorite for ${word.word}`);
+      return false;
+    } else {
+      await this.addToFavorites(word.id);
+      console.log(`[FavoritesService] Toggled ON favorite for ${word.word}`);
+      return true;
     }
+  }
+
+  // ============ SYNC STATUS METHODS ============
+
+  /**
+   * Get synchronization status
+   */
+  async getSyncStatus() {
+    return this.syncService.getSyncStatus();
+  }
+
+  /**
+   * Force synchronization of all favorites
+   */
+  async forceSyncAll() {
+    return this.syncService.forceSyncAll();
+  }
+
+  /**
+   * Manually trigger sync of pending actions
+   */
+  async syncPendingActions() {
+    return this.syncService.syncPendingActions();
   }
 
   /**

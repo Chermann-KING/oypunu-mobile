@@ -15,7 +15,9 @@ import {
   ILanguageService,
   ICategoryService,
   IUserStatsService,
+  IContributorRequestService,
 } from "../interfaces";
+import { IFavoritesSyncService } from "../interfaces/IFavoritesSyncService";
 import {
   ApiService,
   StorageService,
@@ -27,7 +29,9 @@ import {
   apiService,
   storageService,
   cacheService,
+  ContributorRequestService,
 } from "../services";
+import { FavoritesSyncService } from "../services/FavoritesSyncService";
 import { UserStatsService } from "../services/UserStatsService";
 import { LanguageService } from "../services/LanguageService";
 
@@ -42,10 +46,19 @@ export interface ServiceContainer {
   authService: IAuthService;
   dictionaryService: IDictionaryService;
   favoritesService: IFavoritesService;
+  favoritesSyncService: IFavoritesSyncService;
   languageService: ILanguageService;
   categoryService: ICategoryService;
   userStatsService: IUserStatsService;
+  contributorRequestService: IContributorRequestService;
 }
+
+// Create sync service first
+const favoritesSyncService = new FavoritesSyncService(
+  apiService,
+  storageService,
+  cacheService
+);
 
 /**
  * Default service implementations
@@ -60,11 +73,17 @@ const defaultServices: ServiceContainer = {
   favoritesService: new FavoritesService(
     apiService,
     cacheService,
-    storageService
+    storageService,
+    favoritesSyncService
   ),
+  favoritesSyncService,
   languageService: new LanguageService(apiService, cacheService),
   categoryService: new CategoryService(apiService, cacheService),
   userStatsService: new UserStatsService(apiService, cacheService),
+  contributorRequestService: new ContributorRequestService(
+    apiService,
+    cacheService
+  ),
 };
 
 /**
@@ -92,7 +111,7 @@ export const ServiceProvider: React.FC<ServiceProviderProps> = ({
   const serviceContainer: ServiceContainer = {
     ...defaultServices,
     ...services,
-  };
+  } as ServiceContainer;
 
   return (
     <ServiceContext.Provider value={serviceContainer}>
