@@ -1,6 +1,14 @@
-import React, { useState } from 'react';
-import { View, TextInput, Text, StyleSheet } from 'react-native';
-import { Colors, Spacing, Layout, Typography } from '../../tokens';
+import React, { useState } from "react";
+import {
+  View,
+  TextInput,
+  Text,
+  StyleSheet,
+  KeyboardTypeOptions,
+  TextInputProps,
+  ViewStyle,
+} from "react-native";
+import { Colors, Spacing, Layout, Typography } from "../../tokens";
 
 interface InputProps {
   label?: string;
@@ -10,9 +18,17 @@ interface InputProps {
   error?: string;
   disabled?: boolean;
   multiline?: boolean;
+  numberOfLines?: number;
   secureTextEntry?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  keyboardType?: KeyboardTypeOptions;
+  autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  autoComplete?: TextInputProps["autoComplete"];
+  autoCorrect?: boolean;
+  maxLength?: number;
+  containerStyle?: ViewStyle;
+  footerRight?: React.ReactNode; // e.g., counters
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -23,9 +39,17 @@ export const Input: React.FC<InputProps> = ({
   error,
   disabled = false,
   multiline = false,
+  numberOfLines,
   secureTextEntry = false,
   leftIcon,
   rightIcon,
+  keyboardType,
+  autoCapitalize,
+  autoComplete,
+  autoCorrect,
+  maxLength,
+  containerStyle,
+  footerRight,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -37,7 +61,7 @@ export const Input: React.FC<InputProps> = ({
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, containerStyle]}>
       {label && <Text style={styles.label}>{label}</Text>}
       <View style={inputContainerStyle}>
         {leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
@@ -49,13 +73,25 @@ export const Input: React.FC<InputProps> = ({
           placeholderTextColor={Colors.text.tertiary}
           editable={!disabled}
           multiline={multiline}
+          numberOfLines={numberOfLines}
           secureTextEntry={secureTextEntry}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          autoComplete={autoComplete}
+          autoCorrect={autoCorrect}
+          maxLength={maxLength}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
         />
         {rightIcon && <View style={styles.rightIcon}>{rightIcon}</View>}
       </View>
-      {error && <Text style={styles.errorText}>{error}</Text>}
+      {(error || footerRight) && (
+        <View style={styles.footerRow}>
+          {error ? <Text style={styles.errorText}>{error}</Text> : <View />}
+          <View style={styles.flexSpacer} />
+          {footerRight}
+        </View>
+      )}
     </View>
   );
 };
@@ -69,8 +105,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing[2],
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: Colors.surface.card,
     borderRadius: Layout.borderRadius.md,
     borderWidth: 1,
@@ -95,7 +131,7 @@ const styles = StyleSheet.create({
   },
   multiline: {
     minHeight: 80,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   leftIcon: {
     marginRight: Spacing[3],
@@ -108,4 +144,10 @@ const styles = StyleSheet.create({
     color: Colors.semantic.error,
     marginTop: Spacing[1],
   },
+  footerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: Spacing[1],
+  },
+  flexSpacer: { flex: 1 },
 });

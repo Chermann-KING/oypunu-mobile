@@ -3,13 +3,13 @@
  * Follows SOLID principles - Single Responsibility for dictionary operations
  */
 
-import { Word } from '../../types';
+import { Word, DetailedWord } from "../../types";
 
 export interface SearchFilters {
   language?: string;
   category?: string;
   partOfSpeech?: string;
-  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  difficulty?: "beginner" | "intermediate" | "advanced";
   author?: string;
 }
 
@@ -18,8 +18,8 @@ export interface SearchOptions {
   filters?: SearchFilters;
   limit?: number;
   offset?: number;
-  sortBy?: 'relevance' | 'date' | 'alphabetical';
-  sortOrder?: 'asc' | 'desc';
+  sortBy?: "relevance" | "date" | "alphabetical";
+  sortOrder?: "asc" | "desc";
 }
 
 export interface SearchResult {
@@ -35,8 +35,8 @@ export interface SearchResult {
 export interface CreateWordData {
   word: string;
   language: string;
-  definition: string;
-  category: string;
+  definition?: string;
+  category?: string;
   pronunciation?: string;
   examples?: string[];
   etymology?: string;
@@ -44,6 +44,16 @@ export interface CreateWordData {
   difficulty?: string;
   tags?: string[];
   audioFile?: File;
+  // Nouveau: support des sens multiples alignés sur le backend
+  meanings?: Array<{
+    partOfSpeech?: string;
+    definitions: Array<{
+      definition: string;
+      examples?: string[];
+    }>;
+    synonyms?: string[];
+    antonyms?: string[];
+  }>;
 }
 
 export interface Category {
@@ -61,13 +71,28 @@ export interface Language {
   id: string;
   name: string;
   nativeName: string;
-  code: string; // ISO 639-1 or 639-3
-  family: string;
-  speakers: number;
-  region: string[];
-  status: 'active' | 'proposed' | 'deprecated';
-  writingSystem: string;
-  direction: 'ltr' | 'rtl' | 'vertical';
+  iso639_1?: string; // Code ISO 2 lettres (ex: "fr")
+  iso639_2?: string; // Code ISO 3 lettres (ex: "fra")
+  iso639_3?: string; // Code ISO 3 lettres étendu (ex: "fan")
+  family?: string;
+  region?: string;
+  countries?: string[]; // Codes pays (ex: ["GA", "GQ", "CM"])
+  speakerCount?: number;
+  status: "active" | "proposed" | "deprecated";
+  writingSystem?: string;
+  direction?: "ltr" | "rtl" | "vertical";
+  flagEmoji?: string;
+  flagEmojis?: string[];
+  priority?: number;
+  isAfrican?: boolean;
+  metadata?: {
+    description?: string;
+    sources?: string[];
+    lastUpdated?: Date;
+  };
+  // Champs legacy pour compatibilité
+  code?: string; // Alias pour iso639_1 ou iso639_3
+  speakers?: number; // Alias pour speakerCount
 }
 
 /**
@@ -84,6 +109,11 @@ export interface IDictionaryService {
    * Get word details by ID
    */
   getWordById(id: string): Promise<Word>;
+
+  /**
+   * Get detailed word information by ID (for word details screen)
+   */
+  getDetailedWordById(id: string): Promise<DetailedWord>;
 
   /**
    * Get random words for discovery
@@ -130,8 +160,14 @@ export interface IDictionaryService {
    */
   getPopularWords(limit?: number, language?: string): Promise<Word[]>;
 
+  /**
+   * Get the total number of approved words for a given language
+   * The language identifier can be an ISO code (preferred) or an ID fallback
+   */
+  getApprovedWordCount(language: string): Promise<number>;
+
   // Contributor-only methods (when user has CONTRIBUTOR role)
-  
+
   /**
    * Create new word (CONTRIBUTOR+)
    */
@@ -145,17 +181,20 @@ export interface IDictionaryService {
   /**
    * Upload audio pronunciation (CONTRIBUTOR+)
    */
-  uploadWordAudio(wordId: string, audioFile: File): Promise<{ audioUrl: string }>;
+  uploadWordAudio(
+    wordId: string,
+    audioFile: File
+  ): Promise<{ audioUrl: string }>;
 
   /**
    * Create new category (CONTRIBUTOR+)
    */
-  createCategory(data: Omit<Category, 'id' | 'wordCount'>): Promise<Category>;
+  createCategory(data: Omit<Category, "id" | "wordCount">): Promise<Category>;
 
   /**
    * Propose new language (CONTRIBUTOR+)
    */
-  proposeLanguage(data: Omit<Language, 'id' | 'status'>): Promise<Language>;
+  proposeLanguage(data: Omit<Language, "id" | "status">): Promise<Language>;
 
   /**
    * Get user's contributions status

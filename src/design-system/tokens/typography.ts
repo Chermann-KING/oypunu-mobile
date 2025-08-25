@@ -30,9 +30,21 @@ export const Typography = {
       fontWeight: "600" as const,
       color: "#ffffff"
     },
+    bodyLarge: { 
+      fontSize: 18, 
+      lineHeight: 28, 
+      fontWeight: "400" as const,
+      color: "#ffffff"
+    },
     bodyMedium: { 
       fontSize: 16, 
       lineHeight: 24, 
+      fontWeight: "400" as const,
+      color: "#ffffff"
+    },
+    bodySmall: { 
+      fontSize: 14, 
+      lineHeight: 20, 
       fontWeight: "400" as const,
       color: "#ffffff"
     },

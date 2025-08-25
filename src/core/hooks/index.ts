@@ -1,0 +1,7 @@
+// Core hooks exports following SOLID principles
+// Single entry point for all reusable hooks
+
+export * from './useAuth';
+export * from './useDictionary';
+export * from './useFavorites';
+export * from './useFavoritesSync';

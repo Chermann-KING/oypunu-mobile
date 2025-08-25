@@ -1,10 +1,10 @@
-import { Word, Message, CommunityActivity, User } from '../types';
+import { Word, Message, CommunityActivity, User } from "../types";
 
 export const mockWords: Word[] = [
   {
     id: "1",
     word: "Mbote",
-    language: "Lingala", 
+    language: "Lingala",
     pronunciation: "m-bo-te",
     definition: "Bonjour, salutation amicale en lingala",
     category: "Salutations",
@@ -13,10 +13,10 @@ export const mockWords: Word[] = [
     isFavorite: false,
   },
   {
-    id: "2", 
+    id: "2",
     word: "Akwaaba",
     language: "Twi",
-    pronunciation: "ak-waa-ba", 
+    pronunciation: "ak-waa-ba",
     definition: "Bienvenue, mot d'accueil en twi (Ghana)",
     category: "Salutations",
     author: "GhanaExpert",
@@ -26,11 +26,11 @@ export const mockWords: Word[] = [
   {
     id: "3",
     word: "Ubuntu",
-    language: "Zulu", 
+    language: "Zulu",
     pronunciation: "u-bun-tu",
     definition: "Philosophie africaine de l'humanité et de la solidarité",
     category: "Philosophie",
-    author: "SouthAfricaWisdom", 
+    author: "SouthAfricaWisdom",
     timeAgo: "il y a 1j",
     isFavorite: false,
   },
@@ -65,7 +65,8 @@ export const mockMessages: Message[] = [
     lastMessage: "Merci pour la traduction en bambara !",
     timestamp: "il y a 1h",
     unreadCount: 2,
-    avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face"
+    avatar:
+      "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
   },
   {
     id: "2",
@@ -73,7 +74,8 @@ export const mockMessages: Message[] = [
     lastMessage: "Peux-tu vérifier cette définition ?",
     timestamp: "il y a 3h",
     unreadCount: 0,
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
+    avatar:
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
   },
   {
     id: "3",
@@ -81,7 +83,8 @@ export const mockMessages: Message[] = [
     lastMessage: "Nouveau mot en wolof ajouté",
     timestamp: "il y a 1j",
     unreadCount: 1,
-    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face"
+    avatar:
+      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
   },
 ];
 
@@ -91,34 +94,35 @@ export const mockCommunityActivity: CommunityActivity[] = [
     type: "word_added",
     user: "KamerounLinguist",
     content: "a ajouté le mot 'Mbote' en Lingala",
-    timestamp: "il y a 2h"
+    timestamp: "il y a 2h",
   },
   {
     id: "2",
     type: "translation",
     user: "GhanaExpert",
     content: "a traduit 'Akwaaba' en français",
-    timestamp: "il y a 5h"
+    timestamp: "il y a 5h",
   },
   {
     id: "3",
     type: "comment",
     user: "SouthAfricaWisdom",
     content: "a commenté la définition d'Ubuntu",
-    timestamp: "il y a 1j"
+    timestamp: "il y a 1j",
   },
 ];
 
 export const mockUser: User = {
   id: "current_user",
-  name: "Utilisateur O'Ypunu",
+  name: "Invité O'Ypunu",
   username: "oypunu_user",
   email: "user@oypunu.com",
-  avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+  avatar:
+    "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
   role: "user",
   status: "active",
   emailVerified: true,
-  wordsAdded: 23,
+  wordsAdded: 13,
   favorites: 45,
   contributions: 67,
   createdAt: "2024-01-01T00:00:00.000Z",

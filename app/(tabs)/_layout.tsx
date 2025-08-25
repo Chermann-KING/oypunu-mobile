@@ -7,18 +7,18 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.primary[400],
-        tabBarInactiveTintColor: Colors.text.tertiary,
+        tabBarActiveTintColor: Colors.gradient.primary[1],
+        tabBarInactiveTintColor: Colors.primary[400],
         tabBarStyle: {
           backgroundColor: Colors.surface.card,
           borderTopColor: Colors.primary[700],
-          height: 80,
+          height: 120,
           paddingBottom: 20,
           paddingTop: 10,
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '500',
+          fontWeight: "500",
         },
         headerShown: false,
       }}
@@ -34,7 +34,9 @@ export default function TabLayout() {
         name="messages"
         options={{
           title: "Messages",
-          tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => (
+            <MessageCircle color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen

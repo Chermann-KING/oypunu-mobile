@@ -4,20 +4,36 @@
  * Provides all services through React Context
  */
 
-import React, { createContext, useContext, ReactNode } from 'react';
-import { 
-  IApiService, 
-  IStorageService, 
-  ICacheService 
-} from '../interfaces';
-import { 
-  ApiService, 
-  StorageService, 
+import React, { createContext, useContext, ReactNode } from "react";
+import {
+  IApiService,
+  IStorageService,
+  ICacheService,
+  IAuthService,
+  IDictionaryService,
+  IFavoritesService,
+  ILanguageService,
+  ICategoryService,
+  IUserStatsService,
+  IContributorRequestService,
+} from "../interfaces";
+import { IFavoritesSyncService } from "../interfaces/IFavoritesSyncService";
+import {
+  ApiService,
+  StorageService,
   CacheService,
+  DictionaryService,
+  FavoritesService,
+  CategoryService,
+  createAuthService,
   apiService,
   storageService,
-  cacheService 
-} from '../services';
+  cacheService,
+  ContributorRequestService,
+} from "../services";
+import { FavoritesSyncService } from "../services/FavoritesSyncService";
+import { UserStatsService } from "../services/UserStatsService";
+import { LanguageService } from "../services/LanguageService";
 
 /**
  * Service container interface
@@ -27,7 +43,22 @@ export interface ServiceContainer {
   apiService: IApiService;
   storageService: IStorageService;
   cacheService: ICacheService;
+  authService: IAuthService;
+  dictionaryService: IDictionaryService;
+  favoritesService: IFavoritesService;
+  favoritesSyncService: IFavoritesSyncService;
+  languageService: ILanguageService;
+  categoryService: ICategoryService;
+  userStatsService: IUserStatsService;
+  contributorRequestService: IContributorRequestService;
 }
+
+// Create sync service first
+const favoritesSyncService = new FavoritesSyncService(
+  apiService,
+  storageService,
+  cacheService
+);
 
 /**
  * Default service implementations
@@ -37,6 +68,22 @@ const defaultServices: ServiceContainer = {
   apiService,
   storageService,
   cacheService,
+  authService: createAuthService(apiService, storageService, cacheService),
+  dictionaryService: new DictionaryService(apiService, cacheService),
+  favoritesService: new FavoritesService(
+    apiService,
+    cacheService,
+    storageService,
+    favoritesSyncService
+  ),
+  favoritesSyncService,
+  languageService: new LanguageService(apiService, cacheService),
+  categoryService: new CategoryService(apiService, cacheService),
+  userStatsService: new UserStatsService(apiService, cacheService),
+  contributorRequestService: new ContributorRequestService(
+    apiService,
+    cacheService
+  ),
 };
 
 /**
@@ -56,15 +103,15 @@ export interface ServiceProviderProps {
  * Service Provider Component
  * Provides all core services to the application
  */
-export const ServiceProvider: React.FC<ServiceProviderProps> = ({ 
-  children, 
-  services = {} 
+export const ServiceProvider: React.FC<ServiceProviderProps> = ({
+  children,
+  services = {},
 }) => {
   // Merge provided services with defaults
   const serviceContainer: ServiceContainer = {
     ...defaultServices,
     ...services,
-  };
+  } as ServiceContainer;
 
   return (
     <ServiceContext.Provider value={serviceContainer}>
@@ -79,12 +126,19 @@ export const ServiceProvider: React.FC<ServiceProviderProps> = ({
  */
 export const useServices = (): ServiceContainer => {
   const services = useContext(ServiceContext);
-  
+
   if (!services) {
-    throw new Error('useServices must be used within a ServiceProvider');
+    throw new Error("useServices must be used within a ServiceProvider");
   }
-  
+
   return services;
+};
+
+/**
+ * Alias for useServices for consistency
+ */
+export const useServiceProvider = (): ServiceContainer => {
+  return useServices();
 };
 
 /**
@@ -104,6 +158,30 @@ export const useCacheService = (): ICacheService => {
   return useServices().cacheService;
 };
 
+export const useAuthService = (): IAuthService => {
+  return useServices().authService;
+};
+
+export const useDictionaryService = (): IDictionaryService => {
+  return useServices().dictionaryService;
+};
+
+export const useFavoritesService = (): IFavoritesService => {
+  return useServices().favoritesService;
+};
+
+export const useLanguageService = (): ILanguageService => {
+  return useServices().languageService;
+};
+
+export const useCategoryService = (): ICategoryService => {
+  return useServices().categoryService;
+};
+
+export const useUserStatsService = (): IUserStatsService => {
+  return useServices().userStatsService;
+};
+
 /**
  * HOC for injecting services into class components
  */
@@ -113,52 +191,12 @@ export interface WithServicesProps {
 
 export function withServices<P extends WithServicesProps>(
   Component: React.ComponentType<P>
-): React.ComponentType<Omit<P, 'services'>> {
-  return function WrappedComponent(props: Omit<P, 'services'>) {
+): React.ComponentType<Omit<P, "services">> {
+  return function WrappedComponent(props: Omit<P, "services">) {
     const services = useServices();
     return <Component {...(props as P)} services={services} />;
   };
 }
-
-/**
- * Service initialization function
- * Call this on app startup to initialize services
- */
-export const initializeServices = async (): Promise<void> => {
-  try {
-    console.log('[Services] Initializing core services...');
-    
-    // Initialize cache service cleanup
-    // cacheService is already initialized with auto-cleanup
-    
-    // Clean up expired storage items
-    await storageService.removeExpiredItems();
-    
-    // Log service initialization
-    if (__DEV__) {
-      const cacheStats = cacheService.getStats();
-      const storageInfo = await storageService.getStorageInfo();
-      const apiConfig = apiService.getConfig();
-      
-      console.log('[Services] Initialization complete:', {
-        cache: cacheStats,
-        storage: {
-          keys: storageInfo.totalKeys,
-          estimatedSize: `${(storageInfo.estimatedSize / 1024).toFixed(2)}KB`,
-        },
-        api: {
-          baseURL: apiConfig.baseURL,
-          timeout: apiConfig.timeout,
-        },
-      });
-    }
-    
-    console.log('[Services] All core services initialized successfully');
-  } catch (error) {
-    console.error('[Services] Failed to initialize services:', error);
-    // Don't throw - let app continue with potentially degraded functionality
-  }
-};
 
 /**
  * Service cleanup function
@@ -166,13 +204,13 @@ export const initializeServices = async (): Promise<void> => {
  */
 export const cleanupServices = (): void => {
   try {
-    console.log('[Services] Cleaning up services...');
-    
+    console.log("[Services] Cleaning up services...");
+
     // Cleanup cache service
     cacheService.destroy();
-    
-    console.log('[Services] Cleanup complete');
+
+    console.log("[Services] Cleanup complete");
   } catch (error) {
-    console.error('[Services] Error during cleanup:', error);
+    console.error("[Services] Error during cleanup:", error);
   }
 };
